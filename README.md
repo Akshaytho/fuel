@@ -31,7 +31,7 @@ pnpm -C apps/mobile start   # Expo dev server (scan QR with Expo Go)
 Create an empty private repo named `fuel` on github.com, then:
 
 ```bash
-git remote add origin https://github.com/<you>/fuel.git
+git remote add origin https://github.com/Akshaytho/fuel.git
 git push -u origin main
 ```
 

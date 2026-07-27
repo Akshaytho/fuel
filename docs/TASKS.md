@@ -12,7 +12,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] P0-04 Domain package: nutrition engine (feature 0001) with green tests
 - [x] P0-05 Expo app scaffold wired to tokens (structure only; deps install on first `pnpm install` locally/CI)
 - [x] P0-06 GitHub Actions CI: install → typecheck → test
-- [ ] P0-07 Push to GitHub (needs Harish: create repo, push bundle) — see README
+- [x] P0-07 Pushed to GitHub: https://github.com/Akshaytho/fuel (CI on every push)
 - [ ] P0-08 Expo dev build runs on a phone (Expo Go): Today screen shell renders with tokens
 - [ ] P0-09 Storybook (or expo-router sandbox screen) for core components
 - [ ] P0-10 Supabase project (staging) + schema v1 migration + RLS policies + generated types
@@ -39,3 +39,4 @@ Add newly discovered work as new boxes — never do it silently.
 
 - 2026-07-27 · session 1 (cloud) · P0-01..P0-06 done; feature 0001 spec+tests+impl green; repo delivered as bundle.
 - 2026-07-27 · session 1b (cloud) · All project docs vendored into docs/ (index: docs/README.md); SETUP.md with recovery playbook; toolchain pinned (.nvmrc, engines, .editorconfig).
+- 2026-07-27 · session 1c (cloud) · P0-07: pushed to github.com/Akshaytho/fuel via fine-grained PAT (deploy key unusable from cloud sandbox — SSH blocked; noted in SETUP context).
