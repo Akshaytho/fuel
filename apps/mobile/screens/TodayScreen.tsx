@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
-import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card } from '@fuel/ui';
+import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon } from '@fuel/ui';
 import type { DaySummary, Targets } from '@fuel/domain';
 import { str } from './strings';
 
@@ -153,13 +153,13 @@ export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onPro
           <>
             <EmptyNutritionCard theme={theme} targets={vm.targets} />
             <ActionRow theme={theme} iconBg={theme.softBlueBg} onPress={onScan}
-              icon={<Text style={{ fontSize: 18 }}>▣</Text>}
+              icon={<ScanIcon color={theme.tint} />}
               title={str.scanTitle} subtitle={str.scanSub} />
             <ActionRow theme={theme} iconBg={theme.successBg} onPress={onDescribe}
-              icon={<Text style={{ fontSize: 18 }}>💬</Text>}
+              icon={<ChatIcon color={theme.success} />}
               title={str.describeTitle} subtitle={str.describeSub} />
             <ActionRow theme={theme} iconBg={theme.softOrangeBg} onPress={onLog} chevron={false}
-              icon={<Text style={{ fontSize: 18 }}>🔥</Text>}
+              icon={<FlameIcon color={theme.macroCarbs} />}
               title={str.streakStartTitle} subtitle={str.streakStartSub} />
           </>
         ) : (

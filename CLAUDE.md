@@ -9,6 +9,10 @@ your instincts.
 
 Every work session follows the loop in `docs/playbook.md`:
 
+0. PHASE GATE (Harish's standing rule): a task/phase is done only when its
+   UI matches the extracted design screen AND every function in it works.
+   Never advance to the next item while known half-work exists — finish it
+   or get Harish's explicit OK to defer (logged in TASKS.md).
 1. Read `CLAUDE.md`, `docs/TASKS.md`, and the relevant `docs/features/*.md` spec.
 2. Do ONE unchecked task from TASKS.md — only that task.
 3. For new features: write/extend the spec FIRST (restatement, UI mapping,
