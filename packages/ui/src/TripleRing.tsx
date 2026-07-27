@@ -25,8 +25,8 @@ export function TripleRing({
   const gap = 5;
   const rings = [
     { p: calories, color: theme.ringCalories, r: (size - strokeWidth) / 2 },
-    { p: protein, color: theme.macroCarbs /* orange */, r: (size - strokeWidth) / 2 - (strokeWidth + gap) },
-    { p: inner, color: theme.macroFat /* purple */, r: (size - strokeWidth) / 2 - 2 * (strokeWidth + gap) },
+    { p: protein, color: theme.macroProtein, r: (size - strokeWidth) / 2 - (strokeWidth + gap) },
+    { p: inner, color: theme.macroCarbs, r: (size - strokeWidth) / 2 - 2 * (strokeWidth + gap) },
   ];
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>

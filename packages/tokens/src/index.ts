@@ -21,6 +21,8 @@ export const palette = {
   softGreen: '#E9F9EE',
   softBlue: '#E9F2FF',
   softOrange: '#FFF2E5',
+  softPurple: '#F3EDFC',
+  darkSoftPurple: '#2A2140',
   greenDeep: '#1D7A3D',
   darkSoftGreen: '#1B3524',
   darkSoftBlue: '#16283C',
@@ -57,6 +59,7 @@ export interface Theme {
   onSuccessBg: string;  // coach strip text
   softBlueBg: string;   // tinted icon squares (empty-state rows)
   softOrangeBg: string;
+  softPurpleBg: string;
   water: string;        // water card accent
   avatarBg: string;
 }
@@ -70,9 +73,9 @@ export const light: Theme = {
   separator: palette.separator,
   tint: palette.blue,
   ringCalories: palette.green,
-  macroProtein: palette.blue,
-  macroCarbs: palette.orange,
-  macroFat: palette.purple,
+  macroProtein: palette.orange,
+  macroCarbs: palette.purple,
+  macroFat: palette.blue,
   danger: palette.pink,
   onTint: palette.card,
   shadow: palette.label,
@@ -81,6 +84,7 @@ export const light: Theme = {
   onSuccessBg: palette.greenDeep,
   softBlueBg: palette.softBlue,
   softOrangeBg: palette.softOrange,
+  softPurpleBg: palette.softPurple,
   water: palette.blue,
   avatarBg: palette.orange,
 };
@@ -94,9 +98,9 @@ export const dark: Theme = {
   separator: palette.darkCardElevated,
   tint: palette.blue,
   ringCalories: palette.darkGreen,
-  macroProtein: palette.blue,
-  macroCarbs: palette.orange,
-  macroFat: palette.darkPurple,
+  macroProtein: palette.orange,
+  macroCarbs: palette.darkPurple,
+  macroFat: palette.blue,
   danger: palette.pink,
   onTint: palette.darkLabel,
   shadow: palette.darkBg,
@@ -105,6 +109,7 @@ export const dark: Theme = {
   onSuccessBg: palette.greenBright,
   softBlueBg: palette.darkSoftBlue,
   softOrangeBg: palette.darkSoftOrange,
+  softPurpleBg: palette.darkSoftPurple,
   water: palette.blue,
   avatarBg: palette.orange,
 };

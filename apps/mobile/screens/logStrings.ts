@@ -1,0 +1,17 @@
+/** Log-flow strings — centralized until i18next (P0-12). */
+export const logStr = {
+  searchAny: 'Search any food',
+  scan: 'Scan', describe: 'Describe', label: 'Label', saved: 'Saved',
+  goTos: (meal: string) => `YOUR GO-TOS · ${meal.toUpperCase()}`,
+  copyYesterday: 'Copy yesterday',
+  tapHint: 'Tap + to log your usual amount · tap the food to adjust',
+  searchCaption: 'Searches your food database · ranked by what you actually eat',
+  searchError: "Couldn't search right now — describe it instead below.",
+  logOften: 'you log this often',
+  cantFind: "Can't find it? Describe it instead",
+  cantFindSub: '"paneer bhurji with 2 rotis" — we\'ll match it',
+  editFood: 'Edit food',
+  breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
+  kcalCaps: 'KCAL', proteinCaps: 'PROTEIN', carbsCaps: 'CARBS', fatCaps: 'FAT',
+  logTo: (meal: string, kcal: number) => `Log to ${meal} · ${kcal} kcal`,
+} as const;

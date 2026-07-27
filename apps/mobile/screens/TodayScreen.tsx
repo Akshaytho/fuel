@@ -93,9 +93,9 @@ function NutritionCard({ theme, targets, summary, statusLabel, statusColor }: {
         <View style={{ flex: 1, gap: space.s3 }}>
           <StatBlock theme={theme} label={over ? str.calsOver : str.calsLeft} labelColor={over ? theme.danger : theme.success}
             big={fmt(over ? -summary.remaining.kcal : left)} small={str.ofTarget(fmt(targets.kcal))} />
-          <StatBlock theme={theme} label={str.protein} labelColor={theme.macroCarbs}
+          <StatBlock theme={theme} label={str.protein} labelColor={theme.macroProtein}
             big={fmt(summary.consumed.protein_g)} small={`/${fmt(targets.protein_g)}g`} />
-          <StatBlock theme={theme} label={str.carbsFat} labelColor={theme.macroFat}
+          <StatBlock theme={theme} label={str.carbsFat} labelColor={theme.macroCarbs}
             big={`${fmt(summary.consumed.carbs_g)} · ${fmt(summary.consumed.fat_g)}`} small="g" />
         </View>
       </View>
@@ -159,7 +159,7 @@ export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onPro
               icon={<ChatIcon color={theme.success} />}
               title={str.describeTitle} subtitle={str.describeSub} />
             <ActionRow theme={theme} iconBg={theme.softOrangeBg} onPress={onLog} chevron={false}
-              icon={<FlameIcon color={theme.macroCarbs} />}
+              icon={<FlameIcon color={theme.macroProtein} />}
               title={str.streakStartTitle} subtitle={str.streakStartSub} />
           </>
         ) : (
@@ -193,7 +193,7 @@ export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onPro
               <Card theme={theme}>
                 {vm.entries.map((e, i) => (
                   <ListRow key={e.id} theme={theme} title={e.title} subtitle={e.subtitle}
-                    trailing={e.proteinLabel} trailingColor={theme.macroCarbs}
+                    trailing={e.proteinLabel} trailingColor={theme.macroProtein}
                     divider={i < vm.entries.length - 1} />
                 ))}
               </Card>

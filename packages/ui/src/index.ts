@@ -7,3 +7,4 @@ export { TripleRing, type TripleRingProps } from './TripleRing';
 export { TabBar, type TabBarProps } from './TabBar';
 export { StatCard, CoachStrip, ActionRow } from './cards';
 export { ScanIcon, ChatIcon, FlameIcon } from './icons';
+export { Sheet, SearchField, IconTile, FoodRow, SelectChip, MacroPreviewTile, CTAButton } from './sheets';

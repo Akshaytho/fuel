@@ -25,7 +25,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] P1-02 Today screen v1 (spec 0004) — states/logic verified BUT layout diverges from production Summary design (caught by Harish's review)
 - [x] P1-02b FIDELITY REBUILD done: TripleRing, TabBar, StatCard, CoachStrip, ActionRow components; TodayScreen matches production Summary (normal/empty-Day1/dark verified side-by-side vs extracted design refs; loading/over/offline as coherent derivatives).
 - [ ] P1-03 Spec + build: onboarding (goal-first) using domain targets engine
-- [ ] P1-04 Spec + build: food search + portion sheet (local seed DB first)
+- [x] P1-04 Log flow (spec 0005): LogSheet + SearchScreen + PortionSheet match design (side-by-side verified, light+dark); LIVE search proven vs Supabase (scripts/check-search.py); portion math live via domain; macro tokens corrected to production mapping (protein orange/carbs purple/fat blue). Stubs marked: Scan/Describe/Label→P2, Saved/Edit-food→backlog, Copy-yesterday→P1-05
 - [ ] P1-05 Spec + build: offline log store (SQLite) + sync queue + idempotency
 - [ ] P1-06 Food seed: pipeline BUILT+PROVEN (600 USDA foods live in DB, search verified; zero data in repo). Remaining for done: full ~8,000-food run — blocked on valid USDA key (photo key invalid; demo key rate-limited). Then OFF barcode layer (with P2 scan)
 - [ ] P1-07 Data export + delete-account flows (compliance, launch-blocking)
@@ -38,6 +38,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] B-04 v2 pillar modules: training/hypertrophy, mobility & joints, rest/recovery (docs/product/vision-notes.md)
 - [ ] B-05 "Solo leveling" gamification layer design — levels/streaks across all pillars (vision-notes.md)
 - [ ] B-06 SECURITY: rotate Anthropic API key (exposed in photo/chat; unused so far); strengthen DB password + rotate JWT secret + rotate sbp_ access token before launch
+- [ ] B-08 Launch decision: keep or drop anon read on foods (migration 0003)
 - [ ] B-07 Legacy "the-system" tables in Supabase (agent_runs, quest_defs, exercise_plan, stats_snapshot, etc.): decide keep-as-reference vs drop; some may seed v2 pillar design (vision-notes.md)
 
 ## Session log (append one line per session)
@@ -54,3 +55,4 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-07-27 · session 1j (cloud) · P1-02b: screen rebuilt to production design per new CLAUDE.md rule; review fixes: meal rows under tab bar (scroll padding), StatCard wrap. 47 tests green, bundle exports clean.
 - 2026-07-27 · session 1k (cloud) · Phase-gate rule adopted (no advancing with half-work); P1-02b polish closed: real line icons (Scan/Chat/Flame) replace emoji in empty-state rows.
 - 2026-07-27 · session 1l (cloud) · Data-in-DB-only rule adopted; migration 0002; seed pipeline live — 600 foods loaded via DEMO_KEY before rate limit; real USDA key needed (photo transcription invalid).
+- 2026-07-27 · session 1m (cloud) · P1-04 done full loop: design extraction → spec 0005 → token correction → components (Sheet/SearchField/IconTile/FoodRow/SelectChip/MacroPreviewTile/CTA) → 3 screens → live search check green → screenshots reviewed (fixed Saved tile tint, meal-chip row). USDA key slot reserved in .env; 600-food table in use.
