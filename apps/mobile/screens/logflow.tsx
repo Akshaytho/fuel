@@ -65,7 +65,7 @@ export function LogSheet(p: LogSheetProps) {
         </View>
         <Card theme={theme}>
           {p.goTos.map((f, i) => (
-            <FoodRow key={f.id} theme={theme} title={f.name} subtitle={f.subtitle}
+            <FoodRow key={f.id} theme={theme} title={f.name} subtitle={f.subtitle} addTestID={`quickadd-${f.id}`}
               onAdd={() => p.onQuickAdd(f.id)} divider={i < p.goTos.length - 1} />
           ))}
         </Card>
@@ -120,7 +120,7 @@ export function SearchScreen(p: SearchScreenProps) {
               <FoodRow key={r.id} theme={theme}
                 titleNode={<Highlight theme={theme} name={r.name} query={p.query} />}
                 subtitle={r.frequent ? `${r.subtitle} · ${s.logOften}` : r.subtitle}
-                onAdd={() => p.onAdd(r.id)} divider={i < p.results.length - 1} />
+                onAdd={() => p.onAdd(r.id)} divider={i < p.results.length - 1} addTestID={`add-${r.id}`} />
             ))}
           </Card>
         )}
@@ -180,7 +180,7 @@ export function PortionSheet(p: PortionSheetProps) {
         <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel, marginTop: -space.s3 }}>{p.usualNote}</Text>
         <View style={{ flexDirection: 'row', gap: space.s2, flexWrap: 'wrap' }}>
           {p.options.map((o, i) => (
-            <SelectChip key={o.label} theme={theme} label={o.label} selected={i === sel} onPress={() => setSel(i)} />
+            <SelectChip key={o.label} theme={theme} label={o.label} selected={i === sel} testID={`portion-${i}`} onPress={() => setSel(i)} />
           ))}
         </View>
         <View style={{ flexDirection: 'row', gap: space.s2 }}>
@@ -191,13 +191,13 @@ export function PortionSheet(p: PortionSheetProps) {
         </View>
         <View style={{ flexDirection: 'row', gap: space.s2, flexWrap: 'wrap' }}>
           {MEALS.map((x) => (
-            <SelectChip key={x.id} theme={theme} label={x.label} selected={meal === x.id} compact
+            <SelectChip key={x.id} theme={theme} label={x.label} selected={meal === x.id} compact testID={`meal-${x.id}`}
               tintedBg={x.id === 'breakfast' ? theme.softOrangeBg : undefined}
               tintedColor={x.id === 'breakfast' ? theme.macroProtein : undefined}
               onPress={() => setMeal(x.id)} />
           ))}
         </View>
-        <CTAButton theme={theme} label={s.logTo(mealLabel, m.kcal)} onPress={() => p.onLog(grams, meal)} />
+        <CTAButton theme={theme} label={s.logTo(mealLabel, m.kcal)} testID="log-cta" onPress={() => p.onLog(grams, meal)} />
       </View>
     </Sheet>
   );

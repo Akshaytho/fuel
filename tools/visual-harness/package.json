@@ -11,6 +11,7 @@
     "react-native-svg": "^15.0.0",
     "esbuild": "^0.24.0",
     "playwright": "^1.49.0",
-    "@fuel/domain": "workspace:*"
+    "@fuel/domain": "workspace:*",
+    "@fuel/store": "workspace:*"
   }
 }

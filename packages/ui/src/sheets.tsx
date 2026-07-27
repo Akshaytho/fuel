@@ -63,8 +63,8 @@ export function IconTile({ theme, label, tint, bg, icon, onPress }: {
 }
 
 /** Food row with one-tap + (go-tos and search results). */
-export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = true }: {
-  theme: Theme; title?: string; titleNode?: React.ReactNode; subtitle: string; onAdd: () => void; divider?: boolean;
+export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = true, addTestID }: {
+  theme: Theme; title?: string; titleNode?: React.ReactNode; subtitle: string; onAdd: () => void; divider?: boolean; addTestID?: string;
 }) {
   return (
     <View style={{
@@ -77,7 +77,7 @@ export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = tr
         )}
         <Text numberOfLines={1} style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{subtitle}</Text>
       </View>
-      <Pressable onPress={onAdd} style={{
+      <Pressable testID={addTestID} onPress={onAdd} style={{
         width: 32, height: 32, borderRadius: radius.pill, backgroundColor: theme.softBlueBg,
         alignItems: 'center', justifyContent: 'center',
       }}>
@@ -90,11 +90,11 @@ export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = tr
 }
 
 /** Selectable chip (portion sizes, meals). */
-export function SelectChip({ theme, label, selected, tintedBg, tintedColor, onPress, compact }: {
-  theme: Theme; label: string; selected: boolean; tintedBg?: string; tintedColor?: string; onPress: () => void; compact?: boolean;
+export function SelectChip({ theme, label, selected, tintedBg, tintedColor, onPress, compact, testID }: {
+  theme: Theme; label: string; selected: boolean; tintedBg?: string; tintedColor?: string; onPress: () => void; compact?: boolean; testID?: string;
 }) {
   return (
-    <Pressable onPress={onPress} style={{
+    <Pressable testID={testID} onPress={onPress} style={{
       paddingHorizontal: compact ? space.s3 : space.s4, paddingVertical: space.s2 + 2, borderRadius: radius.md,
       backgroundColor: selected ? theme.card : tintedBg ?? theme.card,
       borderWidth: selected ? 2 : 1,
@@ -120,9 +120,9 @@ export function MacroPreviewTile({ theme, value, label, color }: {
   );
 }
 
-export function CTAButton({ theme, label, onPress }: { theme: Theme; label: string; onPress: () => void }) {
+export function CTAButton({ theme, label, onPress, testID }: { theme: Theme; label: string; onPress: () => void; testID?: string }) {
   return (
-    <Pressable onPress={onPress} style={{
+    <Pressable testID={testID} onPress={onPress} style={{
       backgroundColor: theme.tint, borderRadius: radius.card, alignItems: 'center', paddingVertical: space.s4,
     }}>
       <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>{label}</Text>
