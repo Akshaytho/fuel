@@ -41,6 +41,8 @@ export interface Theme {
   macroCarbs: string;
   macroFat: string;
   danger: string;
+  onTint: string;   // text/icon on a tint-colored surface
+  shadow: string;
 }
 
 export const light: Theme = {
@@ -56,6 +58,8 @@ export const light: Theme = {
   macroCarbs: palette.orange,
   macroFat: palette.purple,
   danger: palette.pink,
+  onTint: palette.card,
+  shadow: palette.label,
 };
 
 export const dark: Theme = {
@@ -71,6 +75,8 @@ export const dark: Theme = {
   macroCarbs: palette.orange,
   macroFat: palette.darkPurple,
   danger: palette.pink,
+  onTint: palette.darkLabel,
+  shadow: palette.darkBg,
 };
 
 /** 4pt spacing scale (matches the design's rhythm). */

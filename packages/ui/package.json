@@ -1,0 +1,16 @@
+{
+  "name": "@fuel/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": { "test": "vitest run" },
+  "dependencies": { "@fuel/tokens": "workspace:*" },
+  "peerDependencies": { "react": "*", "react-native": "*", "react-native-svg": "*" },
+  "devDependencies": {
+    "typescript": "^5.6.0", "vitest": "^3.0.0",
+    "react": "19.0.0", "react-native": "0.79.0", "react-native-svg": "^15.0.0",
+    "@types/react": "~19.0.0"
+  }
+}
