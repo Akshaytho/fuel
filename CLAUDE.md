@@ -59,8 +59,13 @@ Every work session follows the loop in `docs/playbook.md`:
 ## Design source of truth
 
 `design/` holds the design doc. The production visual direction is "Native"
-(iOS system palette). Tokens in `packages/tokens` were extracted from it —
-match the design by referencing tokens/components by name, never by eye.
+(iOS system palette); the PRODUCTION LAYOUTS are the turn-4 "complete
+production flow" screens (Summary, Log sheet, etc.) — later turns 5/6 build
+on them. RULE (added after P1-02 fidelity miss): before building ANY screen,
+extract and screenshot the exact design screen (tools/visual-harness has the
+extractor pattern) and put it side-by-side with the build in the harness.
+Fidelity acceptance = element-by-element comparison against that screenshot,
+never against memory of the palette.
 
 ## When you (Claude) make a mistake
 
