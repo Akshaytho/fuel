@@ -17,6 +17,15 @@ export const palette = {
   orange: '#FF9F0A',
   purple: '#AF52DE',
   pink: '#FF375F',
+  // tinted surfaces (sampled from production Summary/empty screens)
+  softGreen: '#E9F9EE',
+  softBlue: '#E9F2FF',
+  softOrange: '#FFF2E5',
+  greenDeep: '#1D7A3D',
+  darkSoftGreen: '#1B3524',
+  darkSoftBlue: '#16283C',
+  darkSoftOrange: '#3A2A14',
+  greenBright: '#58D97C',
   // dark counterparts (from "Summary dark" screen)
   darkBg: '#000000',
   darkCard: '#1C1C1E',
@@ -43,6 +52,13 @@ export interface Theme {
   danger: string;
   onTint: string;   // text/icon on a tint-colored surface
   shadow: string;
+  success: string;      // "On pace" links, positive accents
+  successBg: string;    // coach strip background
+  onSuccessBg: string;  // coach strip text
+  softBlueBg: string;   // tinted icon squares (empty-state rows)
+  softOrangeBg: string;
+  water: string;        // water card accent
+  avatarBg: string;
 }
 
 export const light: Theme = {
@@ -60,6 +76,13 @@ export const light: Theme = {
   danger: palette.pink,
   onTint: palette.card,
   shadow: palette.label,
+  success: palette.green,
+  successBg: palette.softGreen,
+  onSuccessBg: palette.greenDeep,
+  softBlueBg: palette.softBlue,
+  softOrangeBg: palette.softOrange,
+  water: palette.blue,
+  avatarBg: palette.orange,
 };
 
 export const dark: Theme = {
@@ -77,6 +100,13 @@ export const dark: Theme = {
   danger: palette.pink,
   onTint: palette.darkLabel,
   shadow: palette.darkBg,
+  success: palette.darkGreen,
+  successBg: palette.darkSoftGreen,
+  onSuccessBg: palette.greenBright,
+  softBlueBg: palette.darkSoftBlue,
+  softOrangeBg: palette.darkSoftOrange,
+  water: palette.blue,
+  avatarBg: palette.orange,
 };
 
 /** 4pt spacing scale (matches the design's rhythm). */

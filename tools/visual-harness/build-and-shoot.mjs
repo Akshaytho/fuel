@@ -26,7 +26,7 @@ await build({
 writeFileSync('out/index.html', '<!doctype html><meta charset="utf-8"><body style="margin:0"><div id="root"></div><script src="bundle.js"></script>');
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const page = await browser.newPage({ viewport: { width: 1750, height: 1560 }, deviceScaleFactor: 2 });
+const page = await browser.newPage({ viewport: { width: 1320, height: 1800 }, deviceScaleFactor: 2 });
 page.on('pageerror', (e) => console.error('PAGEERROR:', e.message));
 page.on('console', (m) => m.type() === 'error' && console.error('CONSOLE:', m.text()));
 await page.goto('file://' + process.cwd() + '/out/index.html');

@@ -5,45 +5,38 @@ import { light, dark, Theme } from '@fuel/tokens';
 import { computeTargets, summarizeDay, type LogEntryInput, type Targets } from '@fuel/domain';
 import { TodayScreen, type TodayVM } from '../../apps/mobile/screens/TodayScreen';
 
-const targets: Targets = computeTargets({
-  sex: 'male', age_years: 30, height_cm: 175, weight_kg: 70,
-  activity: 'moderate', goal: 'maintain',
-});
-const chicken = { kcal: 165, protein_g: 31, carbs_g: 0, fat_g: 3.6 };
-const banana = { kcal: 89, protein_g: 1.1, carbs_g: 22.8, fat_g: 0.3 };
-const oats = { kcal: 379, protein_g: 13.2, carbs_g: 67.7, fat_g: 6.5 };
+// Mirror the design's demo numbers so comparison is direct:
+// 2,400 target · 1,240 left · protein 96/160 · carbs 142 · fat 38
+const targets: Targets = { kcal: 2400, protein_g: 160, carbs_g: 260, fat_g: 75, clamped: false };
+const designDay = { kcal: 1160, protein_g: 96, carbs_g: 142, fat_g: 38 };
+const per100 = { kcal: designDay.kcal / 2, protein_g: designDay.protein_g / 2, carbs_g: designDay.carbs_g / 2, fat_g: designDay.fat_g / 2 };
+const entries: LogEntryInput[] = [{ per100g: per100, grams: 200 }];
+const summary = summarizeDay(entries, targets);
 
-const normalEntries: LogEntryInput[] = [
-  { per100g: oats, grams: 60 }, { per100g: chicken, grams: 150 }, { per100g: banana, grams: 118 },
+const overEntries: LogEntryInput[] = [{ per100g: per100, grams: 560 }];
+
+const mealVMs = [
+  { id: '1', title: 'Greek yogurt with berries', subtitle: 'Breakfast · 240 kcal', proteinLabel: '22g' },
+  { id: '2', title: '2 eggs, scrambled', subtitle: 'Breakfast · 180 kcal', proteinLabel: '12g' },
+  { id: '3', title: 'Chicken burrito bowl', subtitle: 'Lunch · 740 kcal', proteinLabel: '48g' },
 ];
-const overEntries: LogEntryInput[] = [{ per100g: chicken, grams: 400 }, { per100g: oats, grams: 700 }];
 
 const vms: Record<string, TodayVM> = {
-  loading: { kind: 'loading' },
-  empty: {
-    kind: 'ready', dateLabel: 'Monday, 27 July', offline: false,
-    targets, summary: summarizeDay([], targets), meals: [],
-  },
   normal: {
-    kind: 'ready', dateLabel: 'Monday, 27 July', offline: true,
-    targets, summary: summarizeDay(normalEntries, targets),
-    meals: [
-      { id: 'breakfast', entries: [{ id: 'b1', title: 'Rolled oats', subtitle: '60 g', trailing: '227 kcal' }] },
-      { id: 'lunch', entries: [
-        { id: 'l1', title: 'Grilled chicken breast with a very long name to truncate', subtitle: '150 g · scanned', trailing: '248 kcal' },
-        { id: 'l2', title: 'Banana', subtitle: '118 g', trailing: '105 kcal' },
-      ] },
-    ],
+    kind: 'ready', dateLabel: 'Saturday, July 26', offline: false,
+    targets, summary, entries: mealVMs,
+    streak: { days: 12, isLongest: true }, water: { liters: 1.5, goalLiters: 3 },
+    coach: 'Nice — 64 g protein to go. Dinner covers it.',
   },
+  empty: {
+    kind: 'ready', dateLabel: 'Sunday, July 27 · Day 1', offline: false,
+    targets: { ...targets, kcal: 2050 }, summary: summarizeDay([], targets), entries: [],
+  },
+  loading: { kind: 'loading' },
   over: {
-    kind: 'ready', dateLabel: 'Monday, 27 July', offline: false,
-    targets, summary: summarizeDay(overEntries, targets),
-    meals: [
-      { id: 'dinner', entries: [
-        { id: 'd1', title: 'Chicken breast', subtitle: '400 g', trailing: '660 kcal' },
-        { id: 'd2', title: 'Rolled oats', subtitle: '700 g', trailing: '2653 kcal' },
-      ] },
-    ],
+    kind: 'ready', dateLabel: 'Saturday, July 26', offline: true,
+    targets, summary: summarizeDay(overEntries, targets), entries: mealVMs,
+    streak: { days: 12, isLongest: true }, water: { liters: 1.5, goalLiters: 3 },
   },
 };
 
@@ -51,8 +44,8 @@ function Frame({ theme, name, vm }: { theme: Theme; name: string; vm: TodayVM })
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ color: '#fff', fontSize: 12, fontFamily: 'monospace' }}>{name}</Text>
-      <View style={{ width: 390, height: 700, borderRadius: 24, overflow: 'hidden' }}>
-        <TodayScreen theme={theme} vm={vm} onLog={() => {}} onTab={() => {}} />
+      <View style={{ width: 390, height: 820, borderRadius: 24, overflow: 'hidden' }}>
+        <TodayScreen theme={theme} vm={vm} onLog={() => {}} onScan={() => {}} onDescribe={() => {}} onTab={() => {}} onProfile={() => {}} />
       </View>
     </View>
   );
@@ -61,13 +54,16 @@ function Frame({ theme, name, vm }: { theme: Theme; name: string; vm: TodayVM })
 function App() {
   return (
     <View style={{ backgroundColor: '#5a5a5e', padding: 24, gap: 24 }}>
-      {(['light', 'dark'] as const).map((mode) => (
-        <View key={mode} style={{ flexDirection: 'row', gap: 20 }}>
-          {Object.entries(vms).map(([name, vm]) => (
-            <Frame key={name} theme={mode === 'light' ? light : dark} name={`${name} · ${mode}`} vm={vm} />
-          ))}
-        </View>
-      ))}
+      <View style={{ flexDirection: 'row', gap: 20 }}>
+        <Frame theme={light} name="normal · light (vs design 1)" vm={vms.normal!} />
+        <Frame theme={light} name="empty · light (vs design 2)" vm={vms.empty!} />
+        <Frame theme={dark} name="normal · dark (vs design 3)" vm={vms.normal!} />
+      </View>
+      <View style={{ flexDirection: 'row', gap: 20 }}>
+        <Frame theme={light} name="loading · light" vm={vms.loading!} />
+        <Frame theme={light} name="over+offline · light" vm={vms.over!} />
+        <Frame theme={dark} name="empty · dark" vm={vms.empty!} />
+      </View>
     </View>
   );
 }

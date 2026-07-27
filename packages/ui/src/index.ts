@@ -3,3 +3,6 @@ export { MacroTile, type MacroTileProps } from './MacroTile';
 export { ListRow, type ListRowProps } from './ListRow';
 export { Card, type CardProps } from './Card';
 export { NavPill, type NavPillProps } from './NavPill';
+export { TripleRing, type TripleRingProps } from './TripleRing';
+export { TabBar, type TabBarProps } from './TabBar';
+export { StatCard, CoachStrip, ActionRow } from './cards';

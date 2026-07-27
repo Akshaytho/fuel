@@ -6,11 +6,12 @@ export interface ListRowProps {
   theme: Theme;
   title: string;
   subtitle?: string;      // e.g. "150 g · scanned"
-  trailing?: string;      // e.g. "248 kcal"
+  trailing?: string;      // e.g. "22g"
+  trailingColor?: string; // production design: protein grams in orange
   divider?: boolean;
 }
 
-export function ListRow({ theme, title, subtitle, trailing, divider = true }: ListRowProps) {
+export function ListRow({ theme, title, subtitle, trailing, trailingColor, divider = true }: ListRowProps) {
   return (
     <View style={{
       flexDirection: 'row', alignItems: 'center',
@@ -28,7 +29,7 @@ export function ListRow({ theme, title, subtitle, trailing, divider = true }: Li
         )}
       </View>
       {trailing !== undefined && (
-        <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.label }}>
+        <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: trailingColor ?? theme.label }}>
           {trailing}
         </Text>
       )}
