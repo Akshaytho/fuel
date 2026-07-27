@@ -1,0 +1,21 @@
+{
+  "name": "@fuel/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "test": "echo 'mobile: tests arrive with P1-01 components'"
+  },
+  "dependencies": {
+    "@fuel/domain": "workspace:*",
+    "@fuel/tokens": "workspace:*",
+    "expo": "~53.0.0",
+    "react": "19.0.0",
+    "react-native": "0.79.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

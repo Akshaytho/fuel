@@ -1,0 +1,10 @@
+{
+  "name": "fuel",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit",
+    "test": "pnpm -r --filter './packages/*' test",
+    "verify": "pnpm typecheck && pnpm test"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Fuel",
+    "slug": "fuel",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": { "bundleIdentifier": "app.fuel.mobile", "supportsTablet": false },
+    "android": { "package": "app.fuel.mobile" }
+  }
+}
