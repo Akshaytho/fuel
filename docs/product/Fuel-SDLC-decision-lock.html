@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuel — SDLC &amp; Decision-Lock Package</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400..700&family=Space+Grotesk:wght@400..600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDEAE2; --ink:#191D19; --muted:rgba(25,29,25,.62); --faint:rgba(25,29,25,.42);
+    --green:#1E6B4F; --green-d:#14503A; --lime:#B9E34B; --card:#F7F5EF; --line:rgba(25,29,25,.12);
+    --warn:#C2481F; --code:#0E1A14; --amber:#8a6a12;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Schibsted Grotesk",system-ui,sans-serif;line-height:1.62;
+    -webkit-font-smoothing:antialiased;font-size:16.5px}
+  .wrap{max-width:840px;margin:0 auto;padding:0 22px 130px}
+  header.hero{padding:60px 22px 30px;max-width:840px;margin:0 auto}
+  .kicker{font:600 12px/1 "Space Grotesk",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin:0 0 18px;display:flex;align-items:center;gap:10px}
+  .kicker .dot{width:26px;height:26px;border-radius:8px;background:var(--green);display:inline-flex;align-items:center;justify-content:center}
+  h1{font:400 clamp(36px,8.5vw,58px)/1.03 "Instrument Serif",Georgia,serif;letter-spacing:-.5px;margin:0 0 16px}
+  h1 em{font-style:italic;color:var(--green)}
+  .lede{font-size:clamp(16.5px,4.2vw,19px);color:var(--muted);max-width:660px;margin:0}
+  .meta{margin-top:24px;font:500 13px/1.5 "Space Grotesk",monospace;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 20px}
+  h2{font:400 clamp(25px,5.6vw,33px)/1.12 "Instrument Serif",serif;letter-spacing:-.3px;margin:64px 0 6px;scroll-margin-top:16px}
+  h2 .num{font:600 13px/1 "Space Grotesk",monospace;color:var(--green);display:block;margin-bottom:10px;letter-spacing:.1em}
+  h3{font:600 18.5px/1.3 "Schibsted Grotesk";margin:34px 0 8px;letter-spacing:-.2px}
+  h4{font:600 14.5px/1.3 "Schibsted Grotesk";margin:20px 0 4px}
+  p{margin:12px 0}
+  a{color:var(--green);text-decoration:none;border-bottom:1px solid rgba(30,107,79,.3)}
+  a:hover{color:var(--green-d)}
+  strong{font-weight:700}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin:22px 0}
+  .pill{display:inline-block;font:600 11px/1 "Space Grotesk",monospace;letter-spacing:.05em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:rgba(30,107,79,.1);color:var(--green);margin:0 6px 6px 0}
+  .pill.lime{background:rgba(120,150,30,.18);color:#455c0c}
+  .pill.warn{background:rgba(194,72,31,.12);color:var(--warn)}
+  .pill.grey{background:rgba(25,29,25,.08);color:var(--muted)}
+  .rec{border-left:4px solid var(--green);background:rgba(30,107,79,.06);border-radius:0 14px 14px 0;padding:15px 20px;margin:18px 0}
+  .rec .lbl{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+  .warnbox{border-left:4px solid var(--warn);background:rgba(194,72,31,.06);border-radius:0 14px 14px 0;padding:15px 20px;margin:18px 0}
+  .warnbox .lbl{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+  ul,ol{margin:12px 0;padding-left:22px}
+  li{margin:7px 0}
+  li::marker{color:var(--green)}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font:600 11.5px/1.2 "Space Grotesk",monospace;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  td:first-child{font-weight:600}
+  .adr td:first-child{white-space:nowrap;color:var(--green);font-family:"Space Grotesk",monospace;font-size:12.5px}
+  code{font-family:ui-monospace,"Space Grotesk",Menlo,monospace;font-size:.85em;background:rgba(25,29,25,.07);padding:2px 6px;border-radius:5px}
+  .stack{background:var(--code);color:#DCE7DF;border-radius:16px;padding:20px 22px;margin:20px 0;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre}
+  .stack .k{color:var(--lime)} .stack .c{color:#7fa38f} .stack .a{color:#f0c674}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 22px;margin:30px 0 0}
+  nav.toc .t{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:26px}
+  nav.toc li{margin:5px 0;font-size:13.5px}
+  nav.toc a{border:0;color:var(--ink)} nav.toc a:hover{color:var(--green)}
+  .phase{border-top:1px solid var(--line);padding:18px 0}
+  .phase:last-child{border-bottom:1px solid var(--line)}
+  .phase .ph{font:700 13px/1.2 "Space Grotesk",monospace;color:var(--green);display:flex;justify-content:space-between;align-items:baseline}
+  .phase .ph small{font-weight:500;color:var(--faint)}
+  .risk td:first-child{font-weight:600;white-space:normal}
+  .sev{font:700 10.5px/1 "Space Grotesk",monospace;padding:4px 7px;border-radius:5px;white-space:nowrap}
+  .sev.hi{background:rgba(194,72,31,.14);color:var(--warn)} .sev.md{background:rgba(138,106,18,.16);color:var(--amber)} .sev.lo{background:rgba(30,107,79,.12);color:var(--green)}
+  .foot{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);color:var(--faint);font-size:13px}
+  .callout{background:linear-gradient(180deg,rgba(30,107,79,.08),rgba(30,107,79,.03));border:1px solid rgba(30,107,79,.22);border-radius:18px;padding:22px 24px;margin:24px 0}
+  @media(max-width:560px){nav.toc ol{columns:1}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="kicker"><span class="dot"><svg width="14" height="14" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#EDEAE2" stroke-width="10"/><circle cx="50" cy="50" r="30" fill="none" stroke="#B9E34B" stroke-width="10" stroke-linecap="round" stroke-dasharray="150 189" transform="rotate(-90 50 50)"/></svg></span>SDLC &amp; Decision-Lock Package</div>
+  <h1>Everything decided <em>before</em> the first line of Fuel</h1>
+  <p class="lede">A full pre-implementation software development life cycle for Fuel: every hard-to-reverse decision locked with its reasoning, the risks that could break the project over four years fixed in advance, and the phased build plan with the exact documents each phase needs.</p>
+  <div class="meta"><span>For Harish — solo founder, building with Claude</span><span>iOS + Android · global · production-grade</span><span>July 2026</span></div>
+</header>
+
+<div class="wrap">
+
+<div class="callout">
+  <strong>The one constraint that shapes every choice below.</strong>
+  <p style="margin:8px 0 0">You are one person building a production app for millions, with Claude as your engineering partner. That is not a smaller version of a team project — it's a different game with different winning moves. On a team, knowledge lives in people's heads and code review catches mistakes. Solo, <strong>your knowledge lives in documents and your code review is automated</strong>. So three principles override everything: <strong>(1) buy/managed over build/self-hosted</strong> — every piece of infrastructure you run yourself is a second job; <strong>(2) the machine is your reviewer</strong> — strict types, tests, and CI gates replace the humans who would otherwise catch bugs; <strong>(3) documents are the architecture's memory</strong> — this package, kept alive in your repo, is what lets Claude give you consistent world-class guidance in month 40 instead of contradicting month 4. Every decision here is chosen to be low-operations, AI-legible, and hard to get wrong.</p>
+</div>
+
+<nav class="toc">
+  <div class="t">The package — 13 documents</div>
+  <ol>
+    <li><a href="#s1">Requirements &amp; NFRs (PRD)</a></li>
+    <li><a href="#s2">Locked decisions (the ADR ledger)</a></li>
+    <li><a href="#s3">System architecture</a></li>
+    <li><a href="#s4">Data model &amp; schema</a></li>
+    <li><a href="#s5">API &amp; contracts</a></li>
+    <li><a href="#s6">Security, privacy &amp; global compliance</a></li>
+    <li><a href="#s7">Quality &amp; testing strategy</a></li>
+    <li><a href="#s8">Observability &amp; solo ops</a></li>
+    <li><a href="#s9">DevOps: environments &amp; release</a></li>
+    <li><a href="#s10">Cost &amp; unit economics</a></li>
+    <li><a href="#s11">4-year risk register</a></li>
+    <li><a href="#s12">Phase plan &amp; exit criteria</a></li>
+    <li><a href="#s13">The living document set + human-only decisions</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1 REQUIREMENTS ============ -->
+<h2 id="s1"><span class="num">DOC 01</span>Requirements &amp; non-functional requirements</h2>
+<p>Before choosing anything, we write down what "done" means — because you can't judge a decision without the requirement it serves. This is the contract the rest of the package is built to satisfy.</p>
+
+<h3>Vision &amp; principles</h3>
+<p>Fuel is effortless, honest nutrition tracking. Three product principles, taken straight from the design doc, become engineering constraints: <strong>logging is instant and free forever</strong> (so the write path must be offline-first and never gated); <strong>honesty over false precision</strong> (so estimates are always shown as estimates and are correctable); and <strong>the habit lives outside the app</strong> (so widgets and notifications are first-class, not afterthoughts).</p>
+
+<h3>Functional requirements (from the design)</h3>
+<p>The mockups define the scope. Grouped by capability: <strong>onboarding</strong> (goal-first, minimal data, plan generation); <strong>logging</strong> (search, barcode scan, describe-in-words, manual, portion adjustment); <strong>the day</strong> (Today/Summary, targets, macro rings, empty state); <strong>tracking</strong> (weigh-in, trends, weekly report); <strong>retention surfaces</strong> (home-screen widgets, celebration moment, notifications); <strong>account</strong> (profile, settings, data export/delete); <strong>monetization</strong> (Fuel Pro paywall with restore/entitlements); <strong>theming</strong> (light, dark, and a themeable visual system). Each becomes a tracked feature spec in Phase docs.</p>
+
+<h3>Non-functional requirements — the numbers we design to</h3>
+<p>These are the promises that "scalable, trustworthy, fast" actually cash out to. We pick concrete targets now so every later decision can be checked against them.</p>
+<table>
+  <tr><th>Dimension</th><th>Target (design-to)</th><th>Why this number</th></tr>
+  <tr><td>Cold start</td><td>&lt; 2.0s on a mid-range Android</td><td>Global users aren't on flagships; measure where they live</td></tr>
+  <tr><td>Log a food</td><td>Feels instant (&lt;100ms local write); syncs in background</td><td>Logging must never wait on network — offline-first</td></tr>
+  <tr><td>Barcode → result</td><td>&lt; 1s for cached items, &lt; 2.5s on external lookup</td><td>The "3-second scan" promise in the design</td></tr>
+  <tr><td>UI smoothness</td><td>60fps everywhere; 120fps on ProMotion; no dropped frames on the ring/sheet animations</td><td>Fidelity is the product; jank is a bug</td></tr>
+  <tr><td>Availability</td><td>99.9% for read/log; graceful offline for everything core</td><td>A tracker you can't reach at lunch is worthless</td></tr>
+  <tr><td>Nutrition accuracy</td><td>Looked-up foods within ±2–5% (DB-grade); AI estimates labeled &amp; correctable</td><td>Trust anchor — see §6 and the AI decision</td></tr>
+  <tr><td>Privacy</td><td>GDPR + CCPA + India DPDP compliant at launch; data export &amp; delete working day one</td><td>"Global from the start" makes this non-negotiable</td></tr>
+  <tr><td>Accessibility</td><td>WCAG 2.1 AA: contrast, 44px targets, screen-reader labels, dynamic type</td><td>Reach + App Store goodwill + it's just right</td></tr>
+  <tr><td>Scale headroom</td><td>Architecture unchanged from 1K → 5M users</td><td>No rewrite between traction and scale</td></tr>
+</table>
+
+<h3>Explicitly out of scope (v1)</h3>
+<p>Naming what you won't build is as important as what you will — scope creep is the number-one killer of solo projects. Out for v1: social feed / friends, Apple Watch &amp; Wear OS apps, meal-photo AI (describe-in-words first; photo later), recipe builder, coach/marketplace, web app (mobile-first; web is a later ADR). Each is a deliberate "not yet," recorded so it doesn't sneak in.</p>
+
+<!-- ============ 2 ADR LEDGER ============ -->
+<h2 id="s2"><span class="num">DOC 02</span>The locked decisions — ADR ledger</h2>
+<p>This is the heart of what you asked for: every decision that "needs a word before we start," made once, with the reasoning attached so future-you (and Claude) never has to relitigate it. Each is an <strong>Architecture Decision Record</strong>. The ledger below is the full list; the cards after it expand the dozen highest-stakes, hardest-to-reverse ones. In your repo these live as one file per decision in <code>/docs/adr/</code>, numbered and dated — that's how the reasoning survives four years.</p>
+
+<table class="adr">
+  <tr><th>ADR</th><th>Decision</th><th>Choice (locked)</th><th>Reversibility</th></tr>
+  <tr><td>001</td><td>Cross-platform framework</td><td>React Native + Expo (managed workflow)</td><td><span class="pill warn">Very hard</span></td></tr>
+  <tr><td>002</td><td>Language</td><td>TypeScript, <code>strict</code> everywhere</td><td><span class="pill warn">Very hard</span></td></tr>
+  <tr><td>003</td><td>Repo &amp; build system</td><td>Monorepo: pnpm + Turborepo</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>004</td><td>Navigation</td><td>Expo Router (file-based, typed)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>005</td><td>Styling &amp; theming</td><td>Design tokens (Style Dictionary) + Unistyles</td><td><span class="pill warn">Hard</span></td></tr>
+  <tr><td>006</td><td>Animation &amp; gestures</td><td>Reanimated + Gesture Handler</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>007</td><td>Client state</td><td>TanStack Query (server) + Zustand (UI)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>008</td><td>Offline store &amp; sync</td><td>SQLite (op-sqlite) + sync queue; MMKV for KV</td><td><span class="pill warn">Hard</span></td></tr>
+  <tr><td>009</td><td>Forms &amp; validation</td><td>React Hook Form + Zod schemas</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>010</td><td>Backend platform</td><td>Supabase (managed Postgres suite)</td><td><span class="pill warn">Very hard</span></td></tr>
+  <tr><td>011</td><td>Auth</td><td>Supabase Auth + Apple/Google + email OTP</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>012</td><td>Authorization</td><td>Postgres Row-Level Security (default deny)</td><td><span class="pill warn">Hard</span></td></tr>
+  <tr><td>013</td><td>API surface</td><td>Supabase client for CRUD + Edge Functions (Deno) for secrets/AI/3rd-party</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>014</td><td>DB migrations</td><td>Supabase migrations in git, run in CI, forward+rollback</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>015</td><td>Food database</td><td>Layered: Open Food Facts + USDA FDC free base + commercial fill-in, cached into own DB + crowd layer</td><td><span class="pill warn">Hard</span></td></tr>
+  <tr><td>016</td><td>Describe-meal AI</td><td>LLM extracts structured items+quantities only; macros come from the DB; user confirms</td><td><span class="pill warn">Hard (trust)</span></td></tr>
+  <tr><td>017</td><td>AI provider</td><td>Vendor-abstracted gateway; strong structured-output model default + cheap model for common cases</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>018</td><td>Barcode scanning</td><td>VisionCamera + on-device code scanner (native module)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>019</td><td>Home-screen widgets</td><td>Native modules via Expo config plugin (WidgetKit / Glance)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>020</td><td>Subscriptions / billing</td><td>RevenueCat (cross-platform entitlements)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>021</td><td>Push notifications</td><td>Expo Notifications (+ provider later)</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>022</td><td>Analytics + flags + A/B</td><td>PostHog (EU-hosted for GDPR)</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>023</td><td>Error &amp; crash monitoring</td><td>Sentry (source maps + session replay)</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>024</td><td>CI/CD &amp; OTA</td><td>EAS Build + EAS Update + GitHub Actions</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>025</td><td>Testing stack</td><td>Vitest (unit) + RN Testing Library (component) + Maestro (E2E) + Zod contract tests</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>026</td><td>Environments</td><td>dev / preview(PR) / staging / prod — separate Supabase projects &amp; keys</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>027</td><td>Secrets</td><td>EAS Secrets + Supabase Vault; zero third-party keys in the app bundle</td><td><span class="pill warn">Hard (security)</span></td></tr>
+  <tr><td>028</td><td>Release strategy</td><td>Trunk-based + feature flags; OTA for JS, store submit for native; staged rollout</td><td><span class="pill grey">Medium</span></td></tr>
+  <tr><td>029</td><td>Internationalization</td><td>i18next + ICU; externalize all strings day one; RTL-ready; units/locale aware</td><td><span class="pill warn">Hard if deferred</span></td></tr>
+  <tr><td>030</td><td>Image storage &amp; CDN</td><td>Supabase Storage + CDN; signed URLs</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>031</td><td>Code quality gates</td><td>ESLint + Prettier + typecheck + Conventional Commits, enforced in CI</td><td><span class="pill lo">Easy</span></td></tr>
+  <tr><td>032</td><td>AI-context files</td><td><code>CLAUDE.md</code> + per-package context; ADRs as source of truth for the AI partner</td><td><span class="pill lo">Easy</span></td></tr>
+</table>
+
+<h3>The decisions worth the most words</h3>
+
+<div class="card">
+<h4>ADR-001 · React Native + Expo <span class="pill">client</span></h4>
+<p><strong>Decision:</strong> Build one codebase in React Native with the Expo managed workflow. <strong>Why for you specifically:</strong> you need iOS+Android from one codebase (one person can't maintain two), the biggest ecosystem and training corpus on the planet (so Claude's guidance is deepest and most reliable here), Expo removes almost all native build/toolchain pain (EAS builds in the cloud — no Xcode/Gradle babysitting), and <strong>OTA updates</strong> let you fix bugs in hours without an App Store review. <strong>Alternatives &amp; why not:</strong> Flutter is excellent but Dart has a smaller ecosystem and less AI training data, so you'd get less leverage from Claude; native SwiftUI+Compose doubles the work for a solo dev. <strong>Consequences:</strong> the two things RN doesn't do beautifully out of the box — the camera/scanner and widgets — are handled by thin native modules (ADR-018, 019), which is a known, well-documented path.</p>
+</div>
+
+<div class="card">
+<h4>ADR-005 · Design tokens as the source of truth <span class="pill">fidelity</span></h4>
+<p><strong>Decision:</strong> No raw hex or pixel value ever appears in a component. Every color, space, radius, font size, shadow is a named token; themes (light, dark, and the eight explored directions) are just value maps. <strong>Why it's locked early:</strong> this is the single decision that determines whether "don't compromise the UI" survives to screen #40. Retrofitting tokens later is a full UI rewrite — the highest-regret reversal on the board. <strong>Consequences:</strong> dark mode stops being a feature and becomes a table you fill in; your design doc's eight directions become switchable themes, not forks.</p>
+</div>
+
+<div class="card">
+<h4>ADR-008 · Offline-first with a sync queue <span class="pill">trust · speed</span></h4>
+<p><strong>Decision:</strong> Every log write hits a local SQLite store instantly and enqueues for background sync; the UI reads local. <strong>Why:</strong> the "logging is instant, always free" principle is impossible over the network — someone logging lunch underground must succeed offline. <strong>Consequences:</strong> you must design for conflict resolution (last-write-wins per entry is fine here) and a visible sync state. This is harder than a naive "call the API" app, which is exactly why it's decided now, not discovered later.</p>
+</div>
+
+<div class="card">
+<h4>ADR-010 · Supabase as the backend <span class="pill">scale · solo-ops</span></h4>
+<p><strong>Decision:</strong> Managed Postgres with Auth, Storage, Edge Functions, and Realtime in one platform. <strong>Why for you:</strong> your data is deeply relational (users → days → entries → foods; trends are GROUP-BY queries), you get a real SQL database that scales via read replicas and pooling, and — critically for a solo operator — it's <em>managed</em>, so you're not running Postgres at 2am. It's open-source Postgres underneath, so there's an exit if you ever need it (no true lock-in). <strong>Alternatives &amp; why not:</strong> Firebase's document model makes your trends/analytics queries awkward and locks you into Google; raw AWS is far too much ops for one person. <strong>Consequences:</strong> lean on Row-Level Security (ADR-012) as your primary authorization — it's a feature, not a workaround.</p>
+</div>
+
+<div class="card">
+<h4>ADR-015 + ADR-016 · Food data &amp; the AI, together <span class="pill warn">the whole ballgame</span></h4>
+<p>These two decisions carry almost all the product's technical and trust risk, so they're locked with the most care. <strong>Food data (015):</strong> assemble, don't build — a free base of <a href="https://world.openfoodfacts.org/">Open Food Facts</a> (~2.8M global products) + <a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a> (authoritative whole foods), commercial APIs to patch branded/restaurant gaps, all <strong>cached into your own Postgres</strong> so a barcode hits your cache first and you only pay external APIs for the long tail. A user-correction/crowd layer (fed by scan-miss recovery) compounds over time. <strong>The AI (016):</strong> the LLM parses language into <em>structured items and quantities only</em> — it never invents calorie numbers. The macros come from your database, keyed to the items it identified. <strong>The evidence this is right:</strong> in independent testing, LLMs run ±16–22% mean error on calories with only 35–48% of estimates within ±10% of truth, versus ±2–5% and 95%+ for verified databases; they're also inconsistent session-to-session (±15–28%). So we use the LLM for what it's good at (understanding "two eggs and buttered toast") and the database for what it's good at (the numbers). Always show parsed items as editable chips before logging — a correctable estimate is trustworthy; a silent wrong number destroys trust.</p>
+</div>
+
+<div class="card">
+<h4>ADR-017 · A vendor-abstracted AI gateway <span class="pill">flexibility · cost</span></h4>
+<p><strong>Decision:</strong> All AI calls go through one internal module with a provider interface — never call a vendor SDK directly from features. <strong>Why:</strong> models and prices change every few months; you want to switch providers or route common requests to a cheaper model without touching feature code. Requests carry a JSON schema (structured output) and a confidence signal that decides whether to escalate to a stronger model. <strong>Consequences:</strong> one place to add caching, cost caps, logging, and evals for the parser's accuracy over time.</p>
+</div>
+
+<div class="card">
+<h4>ADR-020 · RevenueCat for subscriptions <span class="pill">don't-build-this</span></h4>
+<p><strong>Decision:</strong> Use RevenueCat for the Fuel Pro paywall rather than hand-rolling StoreKit/Play Billing. <strong>Why:</strong> cross-platform entitlements, receipt validation, restore-purchases, grace periods, and subscription analytics are a notorious multi-month time sink with brutal edge cases — exactly the kind of undifferentiated heavy lifting a solo founder should buy. It has first-class Expo support. <strong>Consequences:</strong> a small revenue share, well worth the months saved and bugs avoided.</p>
+</div>
+
+<div class="card">
+<h4>ADR-029 · Internationalize from commit #1 <span class="pill warn">global</span></h4>
+<p><strong>Decision:</strong> Every user-facing string goes through i18next from the start; numbers, dates, and units (kcal/kJ, g/oz, kg/lb) are locale-aware; layouts are RTL-safe. <strong>Why it's locked now:</strong> "global from the start" means retrofitting i18n after hardcoding English strings across 40 screens is a miserable, error-prone rewrite. Doing it from day one costs almost nothing; deferring it is one of the classic expensive reversals.</p>
+</div>
+
+<!-- ============ 3 ARCHITECTURE ============ -->
+<h2 id="s3"><span class="num">DOC 03</span>System architecture</h2>
+<p>The shape is deliberately simple — a solo operator's architecture should have as few moving parts as possible. Three tiers: the app, a thin serverless middle for anything with a secret, and managed data.</p>
+<div class="stack"><span class="c">        ┌─────────────────────────────────────────┐</span>
+        │  <span class="k">MOBILE APP</span>  (React Native + Expo)       │
+        │  UI · design tokens · Reanimated          │
+        │  <span class="a">SQLite (offline)</span> ⇄ sync queue          │
+        └───────────────┬───────────────┬───────────┘
+    CRUD (RLS-guarded)  │               │  secret / AI / 3rd-party
+                        ▼               ▼
+        ┌───────────────────┐   ┌───────────────────────┐
+        │ <span class="k">SUPABASE</span>          │   │ <span class="k">EDGE FUNCTIONS</span> (Deno) │
+        │ Postgres + Auth   │   │ AI gateway · food-API  │
+        │ Storage · Realtime│   │ fanout · webhooks      │
+        └─────────┬─────────┘   └───────────┬───────────┘
+                  │                         │
+                  ▼                         ▼
+        ┌───────────────────┐   ┌───────────────────────┐
+        │ <span class="a">Food cache</span> (yours) │   │ AI providers · OFF ·   │
+        │ + crowd layer     │   │ USDA · commercial APIs │
+        └───────────────────┘   └───────────────────────┘
+   <span class="c">observability:</span> Sentry (errors) · PostHog (product) · structured logs w/ trace-id
+   <span class="c">product infra:</span> RevenueCat (billing) · Expo Notifications (push)</div>
+<p><strong>Trust boundary:</strong> the app never holds a third-party API key or talks to an AI provider directly. Anything with a secret or a cost goes through an Edge Function, so you can cache, rate-limit, cap spend, and rotate keys without shipping an app update. <strong>Two critical data flows</strong> get their own sequence docs in the repo: the <em>barcode path</em> (scan → local cache → your DB cache → edge fanout → normalize → store → return) and the <em>describe-meal path</em> (text → edge → AI structure extraction → DB macro lookup → editable confirmation → local write → sync).</p>
+
+<!-- ============ 4 DATA MODEL ============ -->
+<h2 id="s4"><span class="num">DOC 04</span>Data model &amp; schema</h2>
+<p>Kept relational and boring on purpose. Row-Level Security means a user can only ever touch their own rows — a whole class of "user A saw user B's data" bugs is impossible by construction, which matters enormously when you're the only reviewer.</p>
+<div class="stack"><span class="c">-- core tables (simplified)</span>
+<span class="k">profiles</span>        id(uuid, =auth.uid) · locale · units · goal · targets{kcal,p,c,f} · created_at
+<span class="k">log_entries</span>     id · user_id → profiles · day(date) · food_id → foods · grams
+                source(scan|describe|search|manual) · logged_at · updated_at · client_id(uuid)
+<span class="k">foods</span>           id · source · barcode? · name · brand? · per_100g{kcal,p,c,f,...}
+                verified_by(usda|off|commercial|crowd) · locale · updated_at
+<span class="k">food_cache_misses</span> barcode · attempts · resolved(bool)     <span class="c">-- feeds crowd layer + coverage metrics</span>
+<span class="k">weigh_ins</span>       user_id · day · weight_g · energy_score?
+<span class="k">entitlements</span>    user_id · tier(free|pro) · source(revenuecat) · expires_at   <span class="c">-- synced from RevenueCat</span>
+
+<span class="c">-- every user table: RLS default-deny, policy = (user_id = auth.uid())</span>
+<span class="c">-- trends/weekly report = GROUP BY day queries; no separate time-series system needed yet</span>
+<span class="c">-- client_id on log_entries makes offline sync idempotent (dedupe on replay)</span></div>
+<p><strong>Migration policy:</strong> every schema change is a checked-in, reversible migration run in CI against staging before prod — never a manual console edit. Index the hot paths early (<code>log_entries(user_id, day)</code>, <code>foods(barcode)</code>). Design the schema assuming millions of rows from day one; it costs nothing now and avoids a painful migration later.</p>
+
+<!-- ============ 5 API ============ -->
+<h2 id="s5"><span class="num">DOC 05</span>API &amp; contracts</h2>
+<p>Two surfaces, one rule: <strong>the type is the contract.</strong> Types are generated from the database schema and shared across app and functions, so a schema change surfaces as a compile error, not a production incident — this is most of what "easy to debug" means for you.</p>
+<ul>
+  <li><strong>CRUD</strong> goes directly through the typed Supabase client, guarded by RLS. No hand-written endpoints for simple reads/writes.</li>
+  <li><strong>Edge Functions</strong> (typed, Zod-validated at the boundary) handle: the AI gateway, food-API fanout + normalization, RevenueCat webhooks, and the widget's tiny cached data endpoint.</li>
+  <li><strong>Contract discipline:</strong> every function validates input and output with Zod; errors use one structured shape (<code>{code, message, retriable}</code>); anything a client might retry (log sync, purchases) is idempotent via <code>client_id</code>; external calls are rate-limited and spend-capped.</li>
+</ul>
+
+<!-- ============ 6 SECURITY ============ -->
+<h2 id="s6"><span class="num">DOC 06</span>Security, privacy &amp; global compliance</h2>
+<p>The moment Fuel stores what someone eats and weighs, you hold sensitive personal data. "Global from the start" means three regimes apply at once. Building for them now is vastly cheaper than a retrofit — and the penalties for getting it wrong are existential for a solo founder.</p>
+
+<h3>The three regimes, and what each forces</h3>
+<table>
+  <tr><th>Regime</th><th>What it forces on Fuel</th><th>Status to know</th></tr>
+  <tr><td>GDPR (EU/EEA)</td><td>Lawful basis + explicit consent, data export &amp; erasure, data-processing records, breach notice within 72h, privacy by design</td><td>In force; the strictest baseline — build to it</td></tr>
+  <tr><td>CCPA/CPRA (California)</td><td>Notice at collection, "do not sell/share" (you won't sell), access &amp; delete rights</td><td>In force</td></tr>
+  <tr><td>India DPDP</td><td>Itemized consent notice separate from ToS, easy consent withdrawal, deletion on withdrawal, <strong>verifiable parental consent for under-18s</strong>, breach report to the Data Protection Board within 72h</td><td>Act 2023; Rules finalized Nov 2025; Consent-Manager framework operational Nov 13 2026; full compliance by May 13 2027 — penalties up to ₹250 crore (~$30M)</td></tr>
+</table>
+<div class="warnbox">
+  <div class="lbl">Two things to decide as product, now</div>
+  <p style="margin:0">India's DPDP treats <strong>everyone under 18 as a child</strong> needing verifiable parental consent — a genuine problem for a nutrition app teenagers may want. Decide your <strong>minimum age / age-gate policy</strong> up front (many consumer health apps set 18+, or 16+ with regional handling). Second, nutrition + weight data near minors edges toward eating-disorder safety territory — plan supportive-resource messaging and avoid features that could encourage unhealthy restriction. Both are cheaper as design decisions than as retrofits.</p>
+</div>
+
+<h3>What we build to satisfy all three</h3>
+<ul>
+  <li><strong>Data minimization</strong> — the design's "only the data we need" onboarding is exactly right; every field you don't collect is one you can't leak.</li>
+  <li><strong>Working DSR flows from day one</strong> — self-serve export and hard-delete account in settings. Not a v2 feature; a launch requirement.</li>
+  <li><strong>Consent done properly</strong> — itemized, separate from ToS, withdrawable as easily as granted; analytics consent separate from core function.</li>
+  <li><strong>Security fundamentals</strong> — TLS in transit, encryption at rest, RLS default-deny, secrets in a vault (never in the bundle — ADR-027), least-privilege service roles, Sign in with Apple/Google, short-lived tokens.</li>
+  <li><strong>A lightweight threat model</strong> (STRIDE-style) reviewed before launch and after any auth/payment change; a written incident + breach-notification runbook so a 72-hour clock never catches you improvising.</li>
+  <li><strong>Data-processing agreements</strong> in place with every subprocessor (Supabase, AI provider, PostHog, Sentry, RevenueCat) and a public subprocessor list.</li>
+</ul>
+
+<!-- ============ 7 TESTING ============ -->
+<h2 id="s7"><span class="num">DOC 07</span>Quality &amp; testing strategy</h2>
+<p>Solo, tests aren't a nicety — they're the reviewer you don't have and the safety net that lets you (and Claude) change code fast without fear. The strategy is a pragmatic pyramid, not 100%-coverage dogma.</p>
+<ul>
+  <li><strong>Unit (many, fast):</strong> all business logic — macro math, portion conversion, sync-queue reconciliation, AI-output parsing. Vitest.</li>
+  <li><strong>Contract (critical):</strong> Zod schemas double as runtime validation and tests — every edge-function and AI boundary is checked. This catches the "the shape changed" bugs that hurt most.</li>
+  <li><strong>Component:</strong> key screens/states with React Native Testing Library.</li>
+  <li><strong>E2E (few, high-value):</strong> Maestro flows for the money paths — onboarding, log via each method, paywall purchase+restore, export/delete.</li>
+  <li><strong>AI evals (special):</strong> a fixed test set of meal descriptions with known correct parses, scored on every parser/model change so accuracy can't silently regress. This is your trust-regression guard.</li>
+  <li><strong>Definition of Done:</strong> types pass, lint passes, tests green, feature behind a flag, accessibility checked, strings externalized. Enforced by CI — a PR can't merge otherwise.</li>
+</ul>
+
+<!-- ============ 8 OBSERVABILITY ============ -->
+<h2 id="s8"><span class="num">DOC 08</span>Observability &amp; solo ops</h2>
+<p>You can't watch dashboards all day, so the system must tell <em>you</em> when something's wrong. Instrument for a team of one: few signals, loud alerts, clear runbooks.</p>
+<ul>
+  <li><strong>The four golden signals to alert on:</strong> crash-free-users %, log-sync success %, barcode/AI cache-hit &amp; success rate, and daily AI+API spend. If those four are healthy, the app is healthy.</li>
+  <li><strong>Sentry</strong> for crashes/errors with source maps and session replay — you see the exact steps to a bug without a repro.</li>
+  <li><strong>PostHog</strong> for product analytics, funnels, feature flags, and A/B in one tool (EU-hosted for GDPR). One event taxonomy, documented, governed — analytics rot is real.</li>
+  <li><strong>Structured logs</strong> in edge functions with a trace-id threading a request across services.</li>
+  <li><strong>Cost alerts</strong> wired to the two dangerous bills (§10) so a runaway AI loop pages you before it empties your account.</li>
+  <li><strong>Incident runbook + status page</strong> so "the one person" has a script under pressure, including the 72-hour breach clock.</li>
+</ul>
+
+<!-- ============ 9 DEVOPS ============ -->
+<h2 id="s9"><span class="num">DOC 09</span>DevOps: environments &amp; release</h2>
+<ul>
+  <li><strong>Four environments</strong> — dev, preview (every PR gets an installable build + isolated data), staging (prod-like, migrations tested here first), production. Separate Supabase projects and keys per environment.</li>
+  <li><strong>Trunk-based + feature flags</strong> — merge small and often behind flags rather than long branches. A half-built feature ships dark; you flip it on for 1% → 10% → 100%. A bad release is a toggle, not a hotfix.</li>
+  <li><strong>Two release lanes:</strong> JS/UI changes ship <strong>OTA via EAS Update</strong> in minutes (no review); native changes go through store submission on a predictable cadence with staged rollout and auto-halt on a crash-rate spike.</li>
+  <li><strong>Reversible everything</strong> — migrations roll back, releases roll back, flags flip off. For a solo operator, the ability to undo instantly is worth more than any single feature.</li>
+  <li><strong>CI pipeline</strong> (GitHub Actions): lint → typecheck → unit/contract → build preview → E2E on the money paths. Green or it doesn't merge.</li>
+</ul>
+
+<!-- ============ 10 COST ============ -->
+<h2 id="s10"><span class="num">DOC 10</span>Cost &amp; unit economics at scale</h2>
+<p>At 1,000 users nothing here costs real money. At millions, two line items dominate — and both are controlled by design decisions already locked, not by luck.</p>
+<ol>
+  <li><strong>AI "describe meal" calls</strong> — uncapped, they scale with engaged users and can dwarf everything. Controlled by caching repeated phrasings, routing common cases to a cheaper model (ADR-017), and making unlimited AI logging a <strong>Fuel Pro</strong> perk — so your heaviest cost users are your paying users.</li>
+  <li><strong>Commercial food-API calls</strong> — ruinous if you proxy every lookup, trivial if you cache into your own DB and pay only for the long tail (ADR-015). This is why the cache is built in week one, not as a later optimization.</li>
+</ol>
+<p>Everything else — Postgres, storage, bandwidth, auth, Sentry, PostHog — scales gently and predictably on managed tiers. The paywall is not just revenue; it's the mechanism that keeps unit economics sane. Model this in a simple sheet (cost per active user vs. Pro conversion) and watch the daily-spend alert.</p>
+
+<!-- ============ 11 RISK REGISTER ============ -->
+<h2 id="s11"><span class="num">DOC 11</span>The 4-year risk register</h2>
+<p>You asked to find and fix, in advance, what could break the project over four years. Here it is as a living register — each risk with its severity and the mitigation <em>already decided</em>. The uncomfortable truth for a solo founder: the biggest risks aren't technical, they're about you (key-person and burnout) and about scope. Those are on the list too, because pretending otherwise is how solo projects actually die.</p>
+<table class="risk">
+  <tr><th>Risk</th><th>Sev</th><th>Mitigation (decided now)</th></tr>
+  <tr><td>Key-person / bus factor — you are the only one who knows how it works</td><td><span class="sev hi">High</span></td><td>This package + ADRs + <code>CLAUDE.md</code> kept current = your knowledge lives in the repo, not your head. Anyone (or any AI) can pick it up.</td></tr>
+  <tr><td>Burnout / sustainable pace over years</td><td><span class="sev hi">High</span></td><td>Ruthless v1 scope (§1 out-of-scope), managed services so there's no ops firefighting, automation as the default, phases with real "done" lines to avoid endless grind.</td></tr>
+  <tr><td>Scope creep</td><td><span class="sev hi">High</span></td><td>Written out-of-scope list; every new idea becomes a backlog item, not a detour; phase exit criteria are gates.</td></tr>
+  <tr><td>AI nutrition inaccuracy → lost trust or health harm</td><td><span class="sev hi">High</span></td><td>ADR-016: DB provides numbers, AI only parses; estimates labeled &amp; correctable; AI eval suite guards regressions; disclaimers.</td></tr>
+  <tr><td>Data breach of sensitive health data</td><td><span class="sev hi">High</span></td><td>RLS default-deny, encryption, secrets in vault, minimal data, threat model, breach runbook w/ 72h clock, DPAs with subprocessors.</td></tr>
+  <tr><td>Compliance failure (GDPR/DPDP/CCPA) → fines</td><td><span class="sev hi">High</span></td><td>Built to strictest baseline day one (§6); working export/delete/consent at launch; age-gate policy decided up front.</td></tr>
+  <tr><td>Runaway AI / API costs</td><td><span class="sev md">Med</span></td><td>Cache-first (ADR-015), model routing + spend caps (ADR-017), daily-spend alerts, unlimited AI gated to Pro.</td></tr>
+  <tr><td>Vendor lock-in / a key vendor changes terms or dies</td><td><span class="sev md">Med</span></td><td>Postgres underneath Supabase (portable); AI behind a gateway (swappable); food data cached in your own DB; billing via RevenueCat abstracts store APIs.</td></tr>
+  <tr><td>Apple/Google policy or rejection risk</td><td><span class="sev md">Med</span></td><td>Follow store rules for health data &amp; subscriptions; RevenueCat handles billing compliance; OTA only for allowed JS changes; keep a rejection-response checklist.</td></tr>
+  <tr><td>Framework churn (RN/Expo major changes over 4 yrs)</td><td><span class="sev md">Med</span></td><td>Stay on Expo SDK releases steadily (don't skip years); thin, isolated native modules; strong tests make upgrades safe.</td></tr>
+  <tr><td>Scaling cliff (DB/queries at millions)</td><td><span class="sev md">Med</span></td><td>Indexed hot paths, cache tables, read replicas available on Supabase; schema designed for volume from day one.</td></tr>
+  <tr><td>Offline sync data corruption / conflicts</td><td><span class="sev md">Med</span></td><td>Idempotent writes via <code>client_id</code>, clear conflict rule, sync reconciliation covered by unit tests.</td></tr>
+  <tr><td>Technical debt accreting invisibly (solo, no reviewer)</td><td><span class="sev md">Med</span></td><td>CI gates + Definition of Done + ADRs prevent drift; Claude does periodic architecture reviews against this package.</td></tr>
+  <tr><td>Food-data licensing / attribution issues</td><td><span class="sev lo">Low</span></td><td>Respect Open Food Facts / USDA / commercial licenses; keep source + attribution per food record (schema already has <code>verified_by</code>).</td></tr>
+  <tr><td>Losing the "why" behind a past decision</td><td><span class="sev lo">Low</span></td><td>Every decision is a dated ADR with alternatives &amp; consequences — this document is that guarantee.</td></tr>
+</table>
+
+<!-- ============ 12 PHASES ============ -->
+<h2 id="s12"><span class="num">DOC 12</span>Phase plan &amp; exit criteria</h2>
+<p>Sequenced to prove the risky things early and to give a solo builder clear "done" lines instead of an endless slog. Since you chose quality over speed, each phase ends only when its <strong>exit criteria</strong> are met — that's the discipline that keeps "production-grade" honest. No fixed weeks (you set the pace with Claude); the <em>order</em> is what matters.</p>
+
+<div class="phase"><div class="ph"><span>PHASE 0 — Foundations</span><small>the machine that builds everything</small></div>
+<p style="margin:8px 0 0">Monorepo, TypeScript strict, design tokens + the ~15 core components in Storybook, Supabase schema with RLS, auth, i18n scaffolding, CI with preview builds, Sentry + PostHog wired, <code>CLAUDE.md</code> + ADR folder seeded from this package.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> a signed-in user can see an empty themed Today screen on both platforms; a PR triggers a full green CI run and an installable preview build.</p></div>
+
+<div class="phase"><div class="ph"><span>PHASE 1 — The core loop</span><small>track a day, instantly</small></div>
+<p style="margin:8px 0 0">Goal-first onboarding + plan, Today/Summary, manual + search logging, offline-first store &amp; sync, food-DB cache seeded with Open Food Facts + USDA, working data export/delete.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> a real person tracks a full day offline and online, it feels instant, and their data survives a reinstall. Private beta (TestFlight / Play internal).</p></div>
+
+<div class="phase"><div class="ph"><span>PHASE 2 — The magic (highest risk first)</span><small>scan &amp; describe</small></div>
+<p style="margin:8px 0 0">Barcode scan (native module) + scan-miss recovery, describe-meal AI with editable-chip confirmation and the eval suite, celebration moment. Meets messy real-world input here, not at launch.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> scan-to-logged under the target, AI parse accuracy passing the eval bar, cache-hit metrics healthy, cost per log within model.</p></div>
+
+<div class="phase"><div class="ph"><span>PHASE 3 — Habit &amp; retention</span><small>the app without opening the app</small></div>
+<p style="margin:8px 0 0">Home-screen widgets (both platforms), weigh-in, trends, weekly report, dark mode, notifications.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> a user can log &amp; check progress from a widget without opening the app; dark mode is complete via tokens.</p></div>
+
+<div class="phase"><div class="ph"><span>PHASE 4 — Business &amp; compliance hardening</span><small>ready to charge &amp; to be trusted</small></div>
+<p style="margin:8px 0 0">Fuel Pro paywall (RevenueCat), profile/settings, full consent + age-gate flows, accessibility + design-system audits, threat model + breach runbook signed off, localization for launch locales.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> purchase+restore works cross-platform; a WCAG AA pass; all DSR flows verified; compliance checklist complete.</p></div>
+
+<div class="phase"><div class="ph"><span>PHASE 5 — Launch &amp; iterate</span><small>staged, measured, reversible</small></div>
+<p style="margin:8px 0 0">Staged public rollout, A/B on paywall &amp; onboarding &amp; the visual directions, monitoring the four golden signals, feedback loop into the backlog.</p>
+<p style="margin:8px 0 0;color:var(--faint);font-size:13.5px"><strong>Exit:</strong> crash-free-users and sync-success above target in production; iteration cadence established; nothing on fire.</p></div>
+
+<!-- ============ 13 DOC SET ============ -->
+<h2 id="s13"><span class="num">DOC 13</span>The living document set + the decisions only you can make</h2>
+<p>These documents live <em>in the repo</em>, not in a drawer — they're how a solo founder + AI stay coherent over four years. Keeping them current is a Definition-of-Done item, so they never rot.</p>
+<table>
+  <tr><th>Document</th><th>Lives at</th><th>Purpose</th></tr>
+  <tr><td>This package (PRD + NFRs)</td><td><code>/docs/product/</code></td><td>What we're building and to what standard</td></tr>
+  <tr><td>ADRs (one file each)</td><td><code>/docs/adr/NNN-*.md</code></td><td>Every locked decision, dated, with rationale — the anti-relitigation record</td></tr>
+  <tr><td>Architecture + data + API</td><td><code>/docs/architecture/</code></td><td>How it fits together; the two critical flow diagrams</td></tr>
+  <tr><td>Security &amp; compliance</td><td><code>/docs/compliance/</code></td><td>Data map, DPAs, DSR runbook, threat model, breach runbook</td></tr>
+  <tr><td>Testing &amp; QA plan</td><td><code>/docs/quality/</code></td><td>Pyramid, DoD, AI eval set</td></tr>
+  <tr><td>Runbooks &amp; on-call</td><td><code>/docs/ops/</code></td><td>Incident, cost-spike, release, rollback scripts</td></tr>
+  <tr><td>Per-feature specs</td><td><code>/docs/features/</code></td><td>One per feature, created at the start of its phase</td></tr>
+  <tr><td><code>CLAUDE.md</code> (+ per-package)</td><td>repo root &amp; packages</td><td><strong>The AI-context file</strong> — conventions, structure, pointers to ADRs, so Claude's help stays consistent</td></tr>
+  <tr><td>Event taxonomy</td><td><code>/docs/analytics/</code></td><td>Every analytics event, named &amp; governed</td></tr>
+</table>
+
+<div class="callout">
+  <strong>The decisions no framework can make for you — bring these, and Claude builds around them.</strong>
+  <p style="margin:8px 0 0">Everything technical is locked above. These are the human/business calls that need <em>your</em> answer, and they're the only remaining "words before we start": your <strong>legal entity &amp; where it's registered</strong> (affects data controller identity and DPAs); <strong>Fuel Pro pricing &amp; what's free vs paid</strong> (the design says logging is free forever — decide the Pro line); <strong>minimum age / age-gate policy</strong> (DPDP under-18 issue); <strong>launch locales &amp; regions</strong> (which languages/markets first); <strong>brand specifics</strong> (final name, App Store presence); and your <strong>content-safety stance</strong> for weight/nutrition near vulnerable users. None block Phase 0 — but decide them before Phase 4, and tell me each as you do so the docs stay true.</p>
+</div>
+
+<div class="foot">
+  <p><strong>Sources for the fast-moving facts:</strong> AI calorie-estimation accuracy — <a href="https://nutrola.app/en/blog/how-accurate-is-chatgpt-for-calorie-estimates">Nutrola analysis vs USDA</a>. India DPDP status &amp; deadlines — <a href="https://www.fisherphillips.com/en/insights/insights/indias-new-data-privacy-rules-are-here">Fisher Phillips</a>. Cross-platform subscriptions — <a href="https://www.revenuecat.com/blog/engineering/build-a-single-expo-app-with-subscriptions-on-ios-android-and-web-using-revenuecat">RevenueCat + Expo</a>. Framework trade-offs — <a href="https://www.superappp.com/blog/native-swift-vs-react-native-expo-in-2025-2026">SwiftUI vs React Native, 2026</a>. Backend — <a href="https://www.bytebase.com/blog/supabase-vs-firebase/">Supabase vs Firebase, 2026</a>. Food data — <a href="https://world.openfoodfacts.org/">Open Food Facts</a>, <a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a>.</p>
+  <p style="margin-top:12px">This package is a starting point to keep alive, not scripture — every decision is a well-reasoned default to pressure-test as you learn, and each is recorded so changing it later is a deliberate, documented act rather than an accident. Tell me which document to expand into its full repo-ready form first: I'd suggest the Phase 0 setup as a literal step-by-step, or the two critical flow diagrams (scan &amp; describe-meal) as detailed sequences.</p>
+</div>
+
+</div>
+</body>
+</html>

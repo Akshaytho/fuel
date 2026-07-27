@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuel — Implementation Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400..700&family=Space+Grotesk:wght@400..600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EDEAE2; --ink:#191D19; --muted:rgba(25,29,25,.62); --faint:rgba(25,29,25,.42);
+    --green:#1E6B4F; --green-d:#14503A; --lime:#B9E34B; --card:#F7F5EF; --line:rgba(25,29,25,.12);
+    --warn:#C2481F; --code:#0E1A14;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Schibsted Grotesk",system-ui,sans-serif;line-height:1.6;
+    -webkit-font-smoothing:antialiased;font-size:16.5px}
+  .wrap{max-width:820px;margin:0 auto;padding:0 22px 120px}
+  header.hero{padding:64px 22px 40px;max-width:820px;margin:0 auto}
+  .kicker{font:600 12px/1 "Space Grotesk",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin:0 0 18px;display:flex;align-items:center;gap:10px}
+  .kicker .dot{width:26px;height:26px;border-radius:8px;background:var(--green);display:inline-flex;align-items:center;justify-content:center}
+  .kicker .dot svg{display:block}
+  h1{font:400 clamp(38px,9vw,62px)/1.03 "Instrument Serif",Georgia,serif;letter-spacing:-.5px;margin:0 0 18px}
+  h1 em{font-style:italic;color:var(--green)}
+  .lede{font-size:clamp(17px,4.4vw,20px);color:var(--muted);max-width:640px;margin:0}
+  .meta{margin-top:26px;font:500 13px/1.5 "Space Grotesk",monospace;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 20px}
+  h2{font:400 clamp(26px,6vw,34px)/1.1 "Instrument Serif",serif;letter-spacing:-.3px;margin:60px 0 6px;scroll-margin-top:20px}
+  h2 .num{font:600 13px/1 "Space Grotesk",monospace;color:var(--green);display:block;margin-bottom:10px;letter-spacing:.1em}
+  h3{font:600 18px/1.3 "Schibsted Grotesk";margin:32px 0 8px;letter-spacing:-.2px}
+  h4{font:600 14.5px/1.3 "Schibsted Grotesk";margin:20px 0 4px;color:var(--ink)}
+  p{margin:12px 0}
+  a{color:var(--green);text-decoration:none;border-bottom:1px solid rgba(30,107,79,.3)}
+  a:hover{color:var(--green-d)}
+  strong{font-weight:700}
+  .divider{height:1px;background:var(--line);border:0;margin:8px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin:22px 0}
+  .card.tight{padding:18px 20px}
+  .pill{display:inline-block;font:600 11px/1 "Space Grotesk",monospace;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;border-radius:999px;background:rgba(30,107,79,.1);color:var(--green);margin:0 6px 6px 0}
+  .pill.lime{background:rgba(120,150,30,.16);color:#4b5e10}
+  .pill.warn{background:rgba(194,72,31,.12);color:var(--warn)}
+  .rec{border-left:4px solid var(--green);background:rgba(30,107,79,.06);border-radius:0 14px 14px 0;padding:16px 20px;margin:20px 0}
+  .rec .lbl{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
+  .warnbox{border-left:4px solid var(--warn);background:rgba(194,72,31,.06);border-radius:0 14px 14px 0;padding:16px 20px;margin:20px 0}
+  .warnbox .lbl{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:8px}
+  ul,ol{margin:12px 0;padding-left:22px}
+  li{margin:7px 0}
+  li::marker{color:var(--green)}
+  table{width:100%;border-collapse:collapse;margin:18px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font:600 12px/1.2 "Space Grotesk",monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  td:first-child{font-weight:600}
+  code{font-family:ui-monospace,"Space Grotesk",Menlo,monospace;font-size:.86em;background:rgba(25,29,25,.07);padding:2px 6px;border-radius:5px}
+  .stack{background:var(--code);color:#DCE7DF;border-radius:16px;padding:22px 24px;margin:22px 0;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.7;overflow-x:auto}
+  .stack .k{color:var(--lime)}
+  .stack .c{color:#7fa38f}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 22px;margin:34px 0 0}
+  nav.toc .t{font:700 11px/1 "Space Grotesk",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:28px}
+  nav.toc li{margin:5px 0;font-size:14px}
+  nav.toc a{border:0;color:var(--ink)}
+  nav.toc a:hover{color:var(--green)}
+  .phase{display:grid;grid-template-columns:76px 1fr;gap:0 16px;border-top:1px solid var(--line);padding:18px 0}
+  .phase:last-child{border-bottom:1px solid var(--line)}
+  .phase .ph{font:700 13px/1.2 "Space Grotesk",monospace;color:var(--green)}
+  .phase .ph small{display:block;font-weight:500;color:var(--faint);margin-top:4px}
+  .grid2{display:grid;grid-template-columns:1fr;gap:0}
+  .foot{margin-top:60px;padding-top:24px;border-top:1px solid var(--line);color:var(--faint);font-size:13.5px}
+  @media(max-width:560px){nav.toc ol{columns:1}.phase{grid-template-columns:60px 1fr}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="kicker"><span class="dot"><svg width="14" height="14" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="#EDEAE2" stroke-width="10"/><circle cx="50" cy="50" r="30" fill="none" stroke="#B9E34B" stroke-width="10" stroke-linecap="round" stroke-dasharray="132 189" transform="rotate(-90 50 50)"/></svg></span>Implementation Blueprint</div>
+  <h1>Shipping <em>Fuel</em> to millions — without compromising the design</h1>
+  <p class="lede">A build strategy for the Fuel nutrition app that stays scalable, trustworthy, fast, and cheap to iterate on — mapped to what the mockups actually demand.</p>
+  <div class="meta"><span>Prepared for Harish</span><span>July 2026</span><span>Source: Fuel App design doc (~30 screens, 6 iterations)</span></div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <div class="t">Contents</div>
+  <ol>
+    <li><a href="#pillars">The five words, made concrete</a></li>
+    <li><a href="#map">What the design demands</a></li>
+    <li><a href="#client">The client: platform choice</a></li>
+    <li><a href="#ui">UI fidelity without compromise</a></li>
+    <li><a href="#backend">Backend &amp; data at scale</a></li>
+    <li><a href="#ai">Food data &amp; the AI features</a></li>
+    <li><a href="#trust">Trustworthy: privacy, security, accuracy</a></li>
+    <li><a href="#fast">Fast: performance &amp; offline</a></li>
+    <li><a href="#velocity">Fast dev &amp; easy debugging</a></li>
+    <li><a href="#deploy">Deployment, iteration, maintenance</a></li>
+    <li><a href="#cost">The economics of scale</a></li>
+    <li><a href="#roadmap">A phased roadmap</a></li>
+    <li><a href="#decisions">Decisions to make now</a></li>
+  </ol>
+</nav>
+
+<h2 id="pillars"><span class="num">01</span>The five words, made concrete</h2>
+<p>You asked for something scalable, trustworthy, fast, easy to build without compromising the UI, easy to debug, quick to develop, and smooth to deploy and maintain. Those are the right instincts — but each one is a specific engineering decision, not a vibe. Here is what each translates to before we touch a line of code.</p>
+<p><strong>Scalable</strong> means the cost and latency of serving your millionth user look like the cost of serving your thousandth — no rewrite in between. In practice that comes from a stateless client, a managed database that shards or read-replicates for you, and pushing the expensive stuff (AI meal parsing, food search) behind caches so the same lookup is never paid for twice.</p>
+<p><strong>Trustworthy</strong> has two faces for a nutrition app: the <em>data</em> has to be right (a wrong calorie count erodes trust faster than a crash), and the <em>data is health data</em>, so privacy and security aren't optional polish — they're the license to operate globally.</p>
+<p><strong>Fast &amp; not compromising the UI</strong> are in tension, and pretending otherwise is how projects go wrong. The Fuel mockups lean on iOS 26 "Liquid Glass," spring animations, and instant logging. Hitting that on one platform is easy; hitting it identically on two while shipping weekly is the actual hard problem, and section 3 is where we resolve it honestly.</p>
+<p><strong>Easy to debug + fast to develop + smooth to deploy</strong> is one thing wearing three hats: a tight feedback loop. It's a monorepo, typed end-to-end, with error tracking, feature flags, over-the-air updates, and a CI pipeline that ships to a beta ring in minutes. Get the loop right and everything else compounds.</p>
+
+<h2 id="map"><span class="num">02</span>What the design actually demands</h2>
+<p>Before choosing tools, it's worth naming what the screens quietly require. The design isn't just pretty views — several screens are the visible tip of a hard system underneath.</p>
+<table>
+  <tr><th>Screen / flow</th><th>What it really requires</th><th>Difficulty</th></tr>
+  <tr><td>Barcode scan → logged in 3s</td><td>On-device camera + barcode decoding, then a food-database lookup that returns in well under a second, plus a graceful "not found" path</td><td>Medium</td></tr>
+  <tr><td>Describe meal (plain words → macros)</td><td>An LLM call that parses free text into structured foods &amp; quantities, mapped against a nutrition DB — your biggest accuracy <em>and</em> cost risk</td><td>Hard</td></tr>
+  <tr><td>Scan-miss recovery</td><td>Fallbacks: manual search, "add anyway," crowd-submit — so a miss is never a dead end</td><td>Medium</td></tr>
+  <tr><td>Today / Summary / logging</td><td>Instant, offline-first writes that sync; the log must feel local even on a subway</td><td>Medium</td></tr>
+  <tr><td>Trends &amp; Weekly report</td><td>Time-series aggregation (weight, energy, adherence) — cheap now, but design the schema for it early</td><td>Easy–Med</td></tr>
+  <tr><td>Home-screen widgets</td><td>Native widget code on both platforms; "most daily opens never enter the app," so this is not optional</td><td>Medium</td></tr>
+  <tr><td>Dark mode + 8 visual directions</td><td>A tokenized design system, not hardcoded colors — themes must be data, not forks</td><td>Design debt if skipped</td></tr>
+  <tr><td>Fuel Pro paywall</td><td>Subscription billing, receipt validation, entitlement checks, restore purchases across platforms</td><td>Medium (buy, don't build)</td></tr>
+</table>
+<p>The takeaway: <strong>two features carry almost all the technical risk</strong> — the AI "describe meal" parser and the food database behind scanning. Everything else is well-trodden. Spend your senior engineering there and buy or template the rest.</p>
+
+<h2 id="client"><span class="num">03</span>The client: the one decision everything hangs on</h2>
+<p>This is the fork in the road, so let's be honest about it rather than cheerlead a favorite. Your two hard constraints pull in opposite directions: "don't compromise the UI at all" points to native; "millions of global users, fast development" points to one cross-platform codebase (you'll need Android — it's the majority of the global market).</p>
+
+<table>
+  <tr><th>Path</th><th>UI fidelity</th><th>Reach &amp; speed</th><th>Best when</th></tr>
+  <tr><td>Native (SwiftUI + Jetpack Compose)</td><td>Highest — zero bridge, every OS animation for free</td><td>Two codebases, two teams, slowest to parity</td><td>iOS-first, UI is the entire product, well-funded</td></tr>
+  <tr><td>Flutter</td><td>Very high &amp; pixel-identical across platforms (own render engine)</td><td>One codebase; can feel subtly "not-native"; Dart talent rarer</td><td>Brand-driven UI that must look identical everywhere</td></tr>
+  <tr><td>React Native + Expo</td><td>High — uses real native components; needs discipline to nail polish</td><td>One codebase, huge talent pool, over-the-air updates, fastest iteration</td><td>Ship both platforms fast with a shared web/JS team</td></tr>
+</table>
+
+<div class="rec">
+  <div class="lbl">Recommendation</div>
+  <p style="margin:0 0 10px"><strong>Start with React Native + Expo, and reach for native modules exactly where the design demands it.</strong> It is the best fit for <em>your specific</em> combination of goals: one codebase for global iOS+Android reach, the largest hiring pool (so "fast development" is real, not aspirational), and — the quiet superpower — over-the-air updates, which let you ship UI fixes in hours without an App Store review. That directly serves "smooth iteration and maintenance."</p>
+  <p style="margin:0">The "don't compromise UI" worry is answered by discipline, not framework: a strict design-token system (section 4), <code>react-native-reanimated</code> for 60/120fps spring animations on the UI thread, and thin native modules for the two things RN doesn't do beautifully out of the box — <strong>the camera/scanner</strong> and <strong>home-screen widgets</strong> (which are native on both platforms no matter what you choose).</p>
+</div>
+
+<div class="warnbox">
+  <div class="lbl">When to choose native instead</div>
+  <p style="margin:0">If Fuel is genuinely <strong>iOS-first for the first year</strong> and the Liquid-Glass look is the whole differentiator, build the iOS app in SwiftUI, nail it, and add Android later. You'll get marginally higher polish at the cost of doubling platform work when you expand. Pick this only if you can say "iOS perfection now, Android in 12 months" and mean it. Flutter is the middle path if identical cross-platform pixels matter more than feeling perfectly native on iOS.</p>
+</div>
+
+<h2 id="ui"><span class="num">04</span>UI fidelity without compromise — the system, not the screen</h2>
+<p>"Not compromising on the design" is won or lost in the first month, before most screens exist. The design doc already did the hard part <em>for</em> you: it explored eight visual directions (Native, Playful, Calm, Aurora, Air, Midnight, Editorial, Sunrise) over the same screen. That's a gift — it means the visual language is meant to be <strong>themeable</strong>, which is only cheap if you build it as tokens from day one.</p>
+<h3>Design tokens are the contract</h3>
+<p>Every color, spacing step, radius, font size, and shadow becomes a named token (<code>color.surface</code>, <code>space.4</code>, <code>radius.card</code>) — never a raw hex or pixel in a component. A theme (light, dark, or any of the eight directions) is then just a different value map for the same tokens. Dark mode stops being a feature you "add" and becomes a table you fill in. Tools: <strong>Tamagui</strong> or <strong>Restyle</strong> for RN (compile-time themes, fast), or a hand-rolled token layer exported from Figma via <strong>Style Dictionary</strong> so design and code share one source of truth.</p>
+<h3>Build a component library, then screens</h3>
+<p>The mockups reuse a small vocabulary: the ring/progress meter, the macro tiles, the log sheet, list rows, the nav pill. Build those ~15 primitives once, document them in <strong>Storybook</strong>, and assemble screens from them. This is what keeps the tenth engineer's screen looking like the founder's — and it's the difference between "we have a design system" and "we have 400 slightly-different buttons."</p>
+<h3>Motion is a first-class citizen</h3>
+<p>The celebration moment, the log sheet spring, the ring fill — these <em>are</em> the product's feel. Put them on the native UI thread with Reanimated (RN) or the platform's native animation APIs, budget them like performance (see section 8), and treat a janky transition as a bug, not a nice-to-have.</p>
+<p>Run the design skills you already have available — an accessibility audit (contrast, 44px touch targets, screen-reader labels) and a design-system audit — <em>before</em> you scale the team, so the standards are enforced by tooling rather than by memory.</p>
+
+<h2 id="backend"><span class="num">05</span>Backend &amp; data — boring on purpose</h2>
+<p>Your backend should be the least interesting part of the system. Excitement in a backend means risk. For a data model that is fundamentally relational (users → days → log entries → foods; subscriptions; weigh-ins), a managed Postgres platform is the right spine.</p>
+<div class="rec">
+  <div class="lbl">Recommendation</div>
+  <p style="margin:0"><strong>Supabase</strong> (managed Postgres + Auth + storage + edge functions + realtime) as the core, because your data is relational and you'll want real SQL for trends and analytics. It scales to millions with read replicas and connection pooling, keeps you on open standards (it's just Postgres — no lock-in), and its row-level-security model is a clean fit for "each user sees only their own data." <strong>Firebase</strong> is the alternative if you prefer a fully hands-off, document-model NoSQL and Google's ecosystem — but its querying gets awkward exactly where your trends features live.</p>
+</div>
+<h4>The shape of it</h4>
+<div class="stack">
+<span class="c">// Core data model — keep it relational and simple</span><br>
+<span class="k">users</span>        → id, locale, goal, targets, created_at<br>
+<span class="k">log_entries</span>  → id, user_id, day, food_id, grams, source(scan|describe|search|manual), logged_at<br>
+<span class="k">foods</span>        → id, source, barcode?, name, macros, per_100g, verified_by<br>
+<span class="k">weigh_ins</span>    → user_id, day, weight, energy_score<br>
+<span class="k">subscriptions</span>→ user_id, tier, entitlement, expires_at, platform<br>
+<br>
+<span class="c">// Row-Level Security: a user can only ever read/write rows where user_id = auth.uid()</span><br>
+<span class="c">// Time-series (trends) are just GROUP BY day queries — no separate system needed at first</span>
+</div>
+<p>Keep the client talking to a thin, typed API layer (Supabase's auto-generated client, or a small edge-function tier for anything with secrets like AI keys). Don't let the mobile app hold any third-party API key — those calls go through your server so you can cache, rate-limit, and rotate keys without shipping an app update.</p>
+
+<h2 id="ai"><span class="num">06</span>Food data &amp; the AI features — where the product lives or dies</h2>
+<p>These two systems are the reason to read carefully. They're the hardest, the most expensive, and the most trust-defining parts of Fuel.</p>
+
+<h3>The food database (barcode + search)</h3>
+<p>You will not build a food database — you'll assemble one from layers, cached in your own Postgres so you own the hot path and aren't hostage to a vendor's rate limit or price change.</p>
+<table>
+  <tr><th>Layer</th><th>Role</th><th>Notes</th></tr>
+  <tr><td><a href="https://world.openfoodfacts.org/">Open Food Facts</a></td><td>Free, global barcode base — ~2.8M products, 150+ countries</td><td>Great for "global"; coverage/quality varies by region; open license</td></tr>
+  <tr><td><a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a></td><td>Free, authoritative whole-foods &amp; nutrients (~380k+ items)</td><td>US-centric, government-verified — your "trustworthy" anchor</td></tr>
+  <tr><td>Nutritionix / Edamam / FatSecret</td><td>Commercial fill-in for branded &amp; restaurant items (~800k+)</td><td>Paid; use to patch gaps, cache aggressively to control cost</td></tr>
+  <tr><td>Your crowd layer</td><td>User-submitted + corrected entries, moderated</td><td>The scan-miss recovery flow feeds this — it compounds over time</td></tr>
+</table>
+<p><strong>The architecture that makes this scale:</strong> a barcode lookup hits <em>your</em> cache first (Postgres + a Redis/edge cache). On a miss, an edge function fans out to the sources, normalizes the result into your schema, stores it, and returns it. The next user with that product gets an instant local hit. At a million users you're paying the external APIs for the <em>long tail</em> only — the head is cached forever. That single design decision is the difference between a sane bill and a ruinous one.</p>
+
+<h3>The "describe meal" AI</h3>
+<p>This is your signature feature and your biggest ongoing cost. "Two eggs and a slice of toast with butter" has to become structured foods, quantities, and macros. The right shape:</p>
+<ol>
+  <li><strong>LLM extracts structure, not nutrition.</strong> Ask the model to output normalized items and estimated quantities as JSON — <em>not</em> calorie numbers. Models hallucinate numbers; they're good at parsing language. The macros come from your database, keyed to the items the model identified. This one rule buys you most of your accuracy and trust.</li>
+  <li><strong>Cache and template ruthlessly.</strong> The same few thousand phrasings recur constantly. Cache parsed results, and consider a smaller/cheaper model for common cases with escalation to a stronger one only when confidence is low.</li>
+  <li><strong>Always show your work + let users correct.</strong> Return the parsed items as editable chips before logging (the design already does this with the portion sheet). A correctable estimate is trustworthy; a silent wrong number is not. Corrections are gold — they train your caches and improve the crowd layer.</li>
+  <li><strong>Budget it per user.</strong> Free-tier users get a sensible daily cap; unlimited describe/photo parsing is a natural Fuel Pro perk (which also aligns the cost with the revenue).</li>
+</ol>
+<div class="warnbox">
+  <div class="lbl">Trust rule</div>
+  <p style="margin:0">Never let an AI-estimated number look like a measured fact. Show estimates as estimates, make them one tap to fix, and cite the database source for looked-up foods. In a nutrition app, <em>honest and roughly right</em> beats <em>confident and occasionally very wrong</em> every time.</p>
+</div>
+
+<h2 id="trust"><span class="num">07</span>Trustworthy — because this is health data</h2>
+<p>The moment you store what someone eats, their weight, and their goals, you're holding sensitive personal health data. Globally, that pulls in real obligations. Building for them from the start is far cheaper than retrofitting after a growth spurt or an enterprise deal.</p>
+<ul>
+  <li><strong>Privacy by design &amp; data minimization.</strong> Collect only what a screen needs (the design's "About you — the only data we need" is exactly the right instinct). Every field you don't store is a field you can't leak.</li>
+  <li><strong>Regional compliance.</strong> "Global" means <strong>GDPR</strong> (EU), <strong>CCPA/CPRA</strong> (California), and health-data rules elsewhere. Practically: a documented privacy policy, working data-export and delete-my-account flows, explicit consent for anything beyond core function, and data-residency awareness. If you ever integrate with US clinical systems or insurers, <strong>HIPAA</strong> enters — but for a consumer tracker, GDPR/CCPA discipline is the baseline.</li>
+  <li><strong>Security fundamentals.</strong> Encryption in transit (TLS) and at rest, row-level security so a bug can't cross users, secrets in a vault (never in the app bundle), least-privilege service accounts, and no third-party keys on the device.</li>
+  <li><strong>Auth done right.</strong> Sign in with Apple/Google + email, short-lived tokens, secure refresh. Use the platform's auth (Supabase Auth / equivalent) rather than rolling your own.</li>
+  <li><strong>Data accuracy as a feature.</strong> Show provenance ("USDA verified," "community-submitted"), let users flag wrong entries, and moderate the crowd layer. Accuracy <em>is</em> trust for a nutrition app.</li>
+</ul>
+
+<h2 id="fast"><span class="num">08</span>Fast — and it has to feel fast, not just be fast</h2>
+<ul>
+  <li><strong>Offline-first logging.</strong> A log write must succeed instantly against a local store and sync in the background. Someone logging lunch on the subway should never see a spinner. Use a local DB (WatermelonDB / SQLite / MMKV for RN; SwiftData/Core Data native) with a sync queue.</li>
+  <li><strong>Perceived performance &gt; raw performance.</strong> Optimistic UI (show the entry logged before the server confirms), skeleton states, and pre-fetching the Today screen on launch. The celebration animation covers the sync latency — good design <em>is</em> performance.</li>
+  <li><strong>A performance budget, enforced in CI.</strong> Cold start under ~2s, screen transitions at 60fps (120 on ProMotion), scan-to-result under a second. Measure it on a mid-range Android device, not your flagship phone — that's where "global" users actually live.</li>
+  <li><strong>Edge + CDN.</strong> Serve the food-lookup cache and static assets from the edge, close to users worldwide. Keep AI and heavy calls in regional edge functions.</li>
+  <li><strong>Widgets = zero-open speed.</strong> Since most daily opens never enter the app, the widget's data path must be its own tiny, fast, cached endpoint.</li>
+</ul>
+
+<h2 id="velocity"><span class="num">09</span>Fast development &amp; easy debugging — the feedback loop</h2>
+<p>Everything you called "easy to build, easy to debug, fast to develop" is really one property: a short, trustworthy feedback loop. Here's the machine that produces it.</p>
+<div class="stack">
+<span class="c">// One repo, typed end to end, so a schema change breaks the build — not production</span><br>
+<span class="k">TypeScript</span> everywhere (app + edge functions) — types generated from the DB schema<br>
+<span class="k">Monorepo</span> (Turborepo) — shared UI, types, and utils between app + widgets + web<br>
+<span class="k">Zod</span> at every boundary — validate AI output, API payloads, deep links<br>
+<br>
+<span class="c">// See problems before users do</span><br>
+<span class="k">Sentry</span> — crash + error tracking with source maps and session replay<br>
+<span class="k">PostHog</span> — product analytics + feature flags + A/B, one tool<br>
+<span class="k">Structured logs</span> — every AI call, cache hit/miss, and sync logged with a trace id<br>
+<br>
+<span class="c">// Ship without fear</span><br>
+<span class="k">EAS</span> (Expo) — cloud builds + over-the-air JS updates in minutes<br>
+<span class="k">GitHub Actions</span> — lint, typecheck, test, e2e (Maestro/Detox) on every PR<br>
+<span class="k">Preview builds</span> — every PR gets an installable build for the team to tap through
+</div>
+<p>Two ideas do the heavy lifting here. <strong>Types from one source</strong> mean a database change surfaces as a red squiggle in the app, not a 2am crash — that's most of "easy to debug." And <strong>feature flags on everything</strong> mean you merge code continuously (dark or off), then turn features on for 1% → 10% → 100%. A bad release becomes a config toggle, not a hotfix scramble — that's most of "smooth to maintain."</p>
+
+<h2 id="deploy"><span class="num">10</span>Deployment, iteration &amp; maintenance</h2>
+<ul>
+  <li><strong>Release trains + rings.</strong> Ship on a predictable cadence to internal → beta (TestFlight / Play internal) → production. Staged rollout to a small % first; auto-halt on a crash-rate spike.</li>
+  <li><strong>Over-the-air for JS, store builds for native.</strong> With Expo, most fixes and UI tweaks ship OTA in hours (no review). Only native-module changes need a store submission. This is the single biggest lever on iteration speed.</li>
+  <li><strong>Trunk-based + feature flags</strong> beats long-lived branches for a small fast team: fewer merge conflicts, everything integration-tested continuously.</li>
+  <li><strong>Backend migrations, versioned &amp; reversible.</strong> Every schema change is a checked-in, forward-and-back migration run in CI — never a manual console edit.</li>
+  <li><strong>Experimentation built in.</strong> With PostHog flags you can A/B the paywall copy, onboarding order, or which of the eight visual directions converts best — turning your design exploration into measured decisions.</li>
+  <li><strong>On-call &amp; SLOs, lightly.</strong> A dashboard for crash-free-users %, sync success %, scan hit-rate, and AI cost/day. Alert on those four and you'll catch almost everything that matters.</li>
+</ul>
+
+<h2 id="cost"><span class="num">11</span>The economics of scale — the two bills that can hurt</h2>
+<p>At a thousand users, nothing here costs real money. At a million, two line items dominate and both are controllable by design, not by luck:</p>
+<ol>
+  <li><strong>AI "describe meal" calls.</strong> Uncapped, this scales linearly with engaged users and can dwarf every other cost. Controlled by caching, right-sizing the model, and making unlimited parsing a Pro feature — the users who cost the most also pay you.</li>
+  <li><strong>Commercial food-API calls.</strong> Ruinous if you proxy every lookup; trivial if you cache into your own DB and only pay for the long tail. Build the cache-first path in week one, not as an optimization later.</li>
+</ol>
+<p>Everything else — Postgres, storage, bandwidth, auth — scales gently and predictably on managed platforms. And the paywall isn't just revenue; it's the mechanism that keeps your heaviest users (unlimited AI logging) aligned with your unit economics. Use a billing provider like <strong>RevenueCat</strong> so cross-platform subscriptions, receipt validation, and entitlements are solved for you rather than hand-built.</p>
+
+<h2 id="roadmap"><span class="num">12</span>A phased roadmap</h2>
+<p>Sequence to de-risk the hard parts early and get a real loop with real users fast, rather than building all 30 screens before anyone taps one.</p>
+<div class="phase"><div class="ph">Phase 0<small>~2 wks</small></div><div><h4 style="margin-top:0">Foundations</h4><p style="margin:4px 0">Monorepo, design tokens + the ~15 core components in Storybook, Supabase schema with RLS, auth, CI with preview builds, Sentry + PostHog wired. Nothing user-facing — but this is the machine that builds everything else.</p></div></div>
+<div class="phase"><div class="ph">Phase 1<small>~4–6 wks</small></div><div><h4 style="margin-top:0">The core loop</h4><p style="margin:4px 0">Onboarding (goal-first), Today/Summary, manual + search logging, offline-first sync, food DB cache with Open Food Facts + USDA. Ship to a private beta. Goal: someone can actually track a day and it feels instant.</p></div></div>
+<div class="phase"><div class="ph">Phase 2<small>~4–6 wks</small></div><div><h4 style="margin-top:0">The magic</h4><p style="margin:4px 0">Barcode scan (native module) + scan-miss recovery, the AI describe-meal parser with the editable-chips trust pattern, celebration moment. These are your differentiators — now they meet real users and real messy input.</p></div></div>
+<div class="phase"><div class="ph">Phase 3<small>~3–4 wks</small></div><div><h4 style="margin-top:0">Habit &amp; retention</h4><p style="margin:4px 0">Home-screen widgets, weigh-in, trends, weekly report, dark mode. The things that bring people back without opening the app.</p></div></div>
+<div class="phase"><div class="ph">Phase 4<small>~2–3 wks</small></div><div><h4 style="margin-top:0">Business &amp; polish</h4><p style="margin:4px 0">Fuel Pro paywall (RevenueCat), profile/settings, accessibility + design-system audit, localization scaffolding, staged public launch. A/B the paywall and onboarding from day one of GA.</p></div></div>
+<p style="color:var(--faint);font-size:14px">Timelines assume a small senior team (2–4 engineers + design). The point is the <em>order</em>, not the exact weeks: prove the hard AI/scan risk in Phase 2, not Phase 4.</p>
+
+<h2 id="decisions"><span class="num">13</span>Decisions to make now</h2>
+<p>Four choices shape everything downstream. Worth deciding deliberately before code, because reversing them later is expensive:</p>
+<table>
+  <tr><th>Decision</th><th>Default recommendation</th><th>Reverse cost later</th></tr>
+  <tr><td>Client framework</td><td>React Native + Expo (native SwiftUI if strictly iOS-first)</td><td>Very high</td></tr>
+  <tr><td>Backend</td><td>Supabase (managed Postgres)</td><td>High</td></tr>
+  <tr><td>Themeable tokens from day one</td><td>Yes — non-negotiable given 8 directions + dark mode</td><td>High (retrofit = rewrite UI)</td></tr>
+  <tr><td>AI parses structure, DB provides numbers</td><td>Yes — the core trust rule</td><td>Medium (but trust damage is worse)</td></tr>
+  <tr><td>Cache food lookups in your own DB</td><td>Yes — from week one</td><td>Medium (but the bill hurts meanwhile)</td></tr>
+</table>
+
+<div class="rec" style="margin-top:30px">
+  <div class="lbl">If you remember three things</div>
+  <p style="margin:0 0 8px"><strong>1. The risk is two features, not thirty screens.</strong> The AI describe-meal parser and the food database are where world-class or mediocre gets decided. Everything else is buyable or templated — spend your best people there.</p>
+  <p style="margin:0 0 8px"><strong>2. Fidelity is a system decision, made in week one.</strong> Tokens + a component library + motion-on-the-UI-thread is how you keep the design uncompromised at the tenth engineer, not the first.</p>
+  <p style="margin:0"><strong>3. The feedback loop is the product's real velocity.</strong> Typed end-to-end, feature-flagged, OTA updates, error tracking. Get the loop tight and "fast, easy to debug, smooth to iterate" stop being goals and become side effects.</p>
+</div>
+
+<div class="foot">
+  <p><strong>Sources &amp; further reading:</strong> <a href="https://www.spikeapi.com/blog/top-nutrition-apis-for-developers-2026">Top nutrition APIs for developers, 2026</a> · <a href="https://world.openfoodfacts.org/">Open Food Facts</a> · <a href="https://fdc.nal.usda.gov/">USDA FoodData Central</a> · <a href="https://www.superappp.com/blog/native-swift-vs-react-native-expo-in-2025-2026">Native Swift vs React Native/Expo, 2026</a> · <a href="https://www.bytebase.com/blog/supabase-vs-firebase/">Supabase vs Firebase, 2026</a> · <a href="https://developers.google.com/ml-kit/vision/barcode-scanning">Google ML Kit barcode scanning</a>.</p>
+  <p style="margin-top:14px">This is a strategy blueprint, not a spec — every recommendation is a default to pressure-test against your team's skills and funding, not a law. Happy to go deep on any single section (a real Phase-0 setup checklist, a data schema, the AI prompt design, or a native-first SwiftUI variant of this plan).</p>
+</div>
+
+</div>
+</body>
+</html>

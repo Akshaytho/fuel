@@ -6,5 +6,8 @@
     "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit",
     "test": "pnpm -r --filter './packages/*' test",
     "verify": "pnpm typecheck && pnpm test"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -14,6 +14,10 @@ The project's memory is on disk, not in anyone's head or chat history:
 - `docs/playbook.md` — the full working loop.
 - `design/` — the design doc (source of truth; "Native" direction shipped).
 
+**New here or coming back after a gap?** `docs/README.md` is the index of
+every project document; `docs/SETUP.md` is zero-to-working setup + disaster
+recovery + the exact prompt to start any Claude work session.
+
 ## Quick start
 
 ```bash
