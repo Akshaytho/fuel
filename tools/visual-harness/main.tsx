@@ -1,54 +1,73 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { View, Text } from 'react-native';
-import { light, dark, space, radius, type as t, Theme } from '@fuel/tokens';
-import { Ring, MacroTile, ListRow, Card, NavPill } from '@fuel/ui';
+import { light, dark, Theme } from '@fuel/tokens';
+import { computeTargets, summarizeDay, type LogEntryInput, type Targets } from '@fuel/domain';
+import { TodayScreen, type TodayVM } from '../../apps/mobile/screens/TodayScreen';
 
-/** A Summary-like composition of every primitive, per theme. */
-function Sample({ theme, name }: { theme: Theme; name: string }) {
+const targets: Targets = computeTargets({
+  sex: 'male', age_years: 30, height_cm: 175, weight_kg: 70,
+  activity: 'moderate', goal: 'maintain',
+});
+const chicken = { kcal: 165, protein_g: 31, carbs_g: 0, fat_g: 3.6 };
+const banana = { kcal: 89, protein_g: 1.1, carbs_g: 22.8, fat_g: 0.3 };
+const oats = { kcal: 379, protein_g: 13.2, carbs_g: 67.7, fat_g: 6.5 };
+
+const normalEntries: LogEntryInput[] = [
+  { per100g: oats, grams: 60 }, { per100g: chicken, grams: 150 }, { per100g: banana, grams: 118 },
+];
+const overEntries: LogEntryInput[] = [{ per100g: chicken, grams: 400 }, { per100g: oats, grams: 700 }];
+
+const vms: Record<string, TodayVM> = {
+  loading: { kind: 'loading' },
+  empty: {
+    kind: 'ready', dateLabel: 'Monday, 27 July', offline: false,
+    targets, summary: summarizeDay([], targets), meals: [],
+  },
+  normal: {
+    kind: 'ready', dateLabel: 'Monday, 27 July', offline: true,
+    targets, summary: summarizeDay(normalEntries, targets),
+    meals: [
+      { id: 'breakfast', entries: [{ id: 'b1', title: 'Rolled oats', subtitle: '60 g', trailing: '227 kcal' }] },
+      { id: 'lunch', entries: [
+        { id: 'l1', title: 'Grilled chicken breast with a very long name to truncate', subtitle: '150 g · scanned', trailing: '248 kcal' },
+        { id: 'l2', title: 'Banana', subtitle: '118 g', trailing: '105 kcal' },
+      ] },
+    ],
+  },
+  over: {
+    kind: 'ready', dateLabel: 'Monday, 27 July', offline: false,
+    targets, summary: summarizeDay(overEntries, targets),
+    meals: [
+      { id: 'dinner', entries: [
+        { id: 'd1', title: 'Chicken breast', subtitle: '400 g', trailing: '660 kcal' },
+        { id: 'd2', title: 'Rolled oats', subtitle: '700 g', trailing: '2653 kcal' },
+      ] },
+    ],
+  },
+};
+
+function Frame({ theme, name, vm }: { theme: Theme; name: string; vm: TodayVM }) {
   return (
-    <View style={{
-      width: 390, backgroundColor: theme.bg, padding: space.s4,
-      gap: space.s4, borderRadius: radius.sheet,
-    }}>
-      <Text style={{ fontSize: t.largeTitle.size, fontWeight: t.largeTitle.weight, color: theme.label }}>
-        Today
-      </Text>
-
-      <Card theme={theme}>
-        <View style={{ alignItems: 'center', paddingVertical: space.s4, gap: space.s4 }}>
-          <Ring theme={theme} progress={0.62} value="812" caption="kcal left" />
-          <View style={{ flexDirection: 'row', gap: space.s4, alignSelf: 'stretch' }}>
-            <MacroTile theme={theme} label="Protein" consumed_g={86} target_g={126} color={theme.macroProtein} />
-            <MacroTile theme={theme} label="Carbs" consumed_g={148} target_g={232} color={theme.macroCarbs} />
-            <MacroTile theme={theme} label="Fat" consumed_g={71} target_g={68} color={theme.macroFat} />
-          </View>
-        </View>
-      </Card>
-
-      <Card theme={theme} header="Lunch">
-        <ListRow theme={theme} title="Grilled chicken breast" subtitle="150 g · scanned" trailing="248 kcal" />
-        <ListRow theme={theme} title="A very long food name that should truncate with an ellipsis rather than wrap" subtitle="1 serving" trailing="105 kcal" />
-        <ListRow theme={theme} title="Banana" subtitle="118 g" trailing="105 kcal" divider={false} />
-      </Card>
-
-      {/* over-target ring case */}
-      <View style={{ flexDirection: 'row', gap: space.s4, alignItems: 'center' }}>
-        <Ring theme={theme} progress={1.3} size={72} strokeWidth={8} />
-        <Text style={{ color: theme.secondaryLabel, fontSize: t.footnote.size }}>over-target (danger)</Text>
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: '#fff', fontSize: 12, fontFamily: 'monospace' }}>{name}</Text>
+      <View style={{ width: 390, height: 700, borderRadius: 24, overflow: 'hidden' }}>
+        <TodayScreen theme={theme} vm={vm} onLog={() => {}} onTab={() => {}} />
       </View>
-
-      <NavPill theme={theme} tabs={['Today', 'Trends', 'You']} activeIndex={0} onTab={() => {}} onLog={() => {}} />
-      <Text style={{ color: theme.secondaryLabel, fontSize: t.caption.size, textAlign: 'center' }}>{name}</Text>
     </View>
   );
 }
 
 function App() {
   return (
-    <View style={{ flexDirection: 'row', gap: 24, padding: 24, backgroundColor: '#8E8E93' }}>
-      <Sample theme={light} name="light" />
-      <Sample theme={dark} name="dark" />
+    <View style={{ backgroundColor: '#5a5a5e', padding: 24, gap: 24 }}>
+      {(['light', 'dark'] as const).map((mode) => (
+        <View key={mode} style={{ flexDirection: 'row', gap: 20 }}>
+          {Object.entries(vms).map(([name, vm]) => (
+            <Frame key={name} theme={mode === 'light' ? light : dark} name={`${name} · ${mode}`} vm={vm} />
+          ))}
+        </View>
+      ))}
     </View>
   );
 }

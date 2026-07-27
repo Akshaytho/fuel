@@ -32,13 +32,15 @@ export function Ring({
           cx={size / 2} cy={size / 2} r={r}
           stroke={theme.separator} strokeWidth={strokeWidth} fill="none"
         />
-        <Circle
-          cx={size / 2} cy={size / 2} r={r}
-          stroke={color} strokeWidth={strokeWidth} fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${c}`}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
+        {dash > 0 && (
+          <Circle
+            cx={size / 2} cy={size / 2} r={r}
+            stroke={color} strokeWidth={strokeWidth} fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${c}`}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
       </Svg>
       {value !== undefined && (
         <Text style={{

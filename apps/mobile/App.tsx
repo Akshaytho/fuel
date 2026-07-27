@@ -1,42 +1,49 @@
 import React from 'react';
-import { SafeAreaView, ScrollView, Text, View, useColorScheme } from 'react-native';
-import { light, dark, space, radius, type as t } from '@fuel/tokens';
-import { computeTargets } from '@fuel/domain';
+import { SafeAreaView, Alert, useColorScheme } from 'react-native';
+import { light, dark } from '@fuel/tokens';
+import { computeTargets, summarizeDay, type LogEntryInput } from '@fuel/domain';
+import { TodayScreen, type TodayVM } from './screens/TodayScreen';
 
-/**
- * Today screen shell — P0-08. Proves tokens + domain wire into the app.
- * Real Today screen is P1-02 (spec first, per docs/playbook.md).
- */
+// TODO(stub): P1-05 — real offline store replaces this demo data provider.
+const demoProfileTargets = computeTargets({
+  sex: 'male', age_years: 30, height_cm: 175, weight_kg: 70,
+  activity: 'moderate', goal: 'maintain',
+});
+
+const chicken = { kcal: 165, protein_g: 31, carbs_g: 0, fat_g: 3.6 };
+const banana = { kcal: 89, protein_g: 1.1, carbs_g: 22.8, fat_g: 0.3 };
+const demoEntries: LogEntryInput[] = [
+  { per100g: chicken, grams: 150 },
+  { per100g: banana, grams: 118 },
+];
+
+const vm: TodayVM = {
+  kind: 'ready',
+  dateLabel: 'Monday, 27 July',
+  offline: false,
+  targets: demoProfileTargets,
+  summary: summarizeDay(demoEntries, demoProfileTargets),
+  meals: [
+    {
+      id: 'lunch',
+      entries: [
+        { id: '1', title: 'Grilled chicken breast', subtitle: '150 g · scanned', trailing: '248 kcal' },
+        { id: '2', title: 'Banana', subtitle: '118 g', trailing: '105 kcal' },
+      ],
+    },
+  ],
+};
+
 export default function App() {
   const theme = useColorScheme() === 'dark' ? dark : light;
-
-  // TODO(stub): P1-03 — targets come from onboarding; demo profile until then.
-  const targets = computeTargets({
-    sex: 'male', age_years: 30, height_cm: 175, weight_kg: 70,
-    activity: 'moderate', goal: 'maintain',
-  });
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <ScrollView contentContainerStyle={{ padding: space.s4 }}>
-        <Text style={{
-          fontSize: t.largeTitle.size, fontWeight: t.largeTitle.weight,
-          color: theme.label, marginBottom: space.s4,
-        }}>
-          Today
-        </Text>
-        <View style={{
-          backgroundColor: theme.card, borderRadius: radius.card,
-          padding: space.s5,
-        }}>
-          <Text style={{ fontSize: t.headline.size, fontWeight: t.headline.weight, color: theme.label }}>
-            {targets.kcal} kcal target
-          </Text>
-          <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel, marginTop: space.s1 }}>
-            P {targets.protein_g}g · C {targets.carbs_g}g · F {targets.fat_g}g
-          </Text>
-        </View>
-      </ScrollView>
+      <TodayScreen
+        theme={theme}
+        vm={vm}
+        onLog={() => Alert.alert('Log', 'Logging arrives with P1-04.')} // TODO(stub): P1-04
+        onTab={() => {}} // TODO(stub): P1 router task
+      />
     </SafeAreaView>
   );
 }

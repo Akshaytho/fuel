@@ -23,6 +23,9 @@ importers:
       '@fuel/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@fuel/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       expo:
         specifier: ~53.0.0
         version: 53.0.27(@babel/core@7.29.7)(react-native@0.79.0(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -32,6 +35,9 @@ importers:
       react-native:
         specifier: 0.79.0
         version: 0.79.0(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0)
+      react-native-svg:
+        specifier: ^15.0.0
+        version: 15.15.5(react-native@0.79.0(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
     devDependencies:
       '@types/react':
         specifier: ~19.0.0
@@ -82,6 +88,9 @@ importers:
 
   tools/visual-harness:
     devDependencies:
+      '@fuel/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@fuel/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

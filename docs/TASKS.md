@@ -22,7 +22,7 @@ Add newly discovered work as new boxes — never do it silently.
 ## Phase 1 — Core loop (specs first, one box per session)
 
 - [x] P1-01 Core UI primitives (spec 0003): Ring, MacroTile, ListRow, Card, NavPill — 35 tests green; visually verified light+dark via headless-Chromium harness (tools/visual-harness)
-- [ ] P1-02 Spec + build: Today/Summary screen (all states: default/empty/loading/offline)
+- [x] P1-02 Today screen (spec 0004): presentational TodayScreen + meal bucketing in domain; states loading/empty/normal/over × light+dark visually verified; 47 tests green; bundle exports clean
 - [ ] P1-03 Spec + build: onboarding (goal-first) using domain targets engine
 - [ ] P1-04 Spec + build: food search + portion sheet (local seed DB first)
 - [ ] P1-05 Spec + build: offline log store (SQLite) + sync queue + idempotency
@@ -48,3 +48,4 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-07-27 · session 1e (cloud) · P1-01 done: @fuel/ui primitives built spec-first; visual harness (react-native-web + esbuild + Playwright/Chromium) catches rendering; fixed missing-ring bug (.web.js platform extensions) + ADR-005 violation (raw hex in NavPill → new onTint/shadow tokens).
 - 2026-07-27 · session 1f (cloud) · Vision notes captured (solo-leveling multi-pillar v2); schema v1 + RLS written; DB push from sandbox blocked (proxy is HTTPS-only — raw Postgres impossible); .env local-only, .env.example committed. Next: Management API token OR laptop db-push.
 - 2026-07-27 · session 1g (cloud) · P0-10 DONE: schema v1 live on Supabase via Management API (sbp token from Harish); tables/columns/RLS verified against migration; anon key in local .env; legacy the-system tables discovered and preserved (B-07).
+- 2026-07-27 · session 1h (cloud) · P1-02 done via full loop: spec 0004 → domain mealForHour (12 tests) → screen slices → verify. Review caught: over-target demo not actually over (fixed), zero-progress ring dot (fixed in Ring), missing @fuel/ui dep in app (caught by bundle export).
