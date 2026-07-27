@@ -15,7 +15,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] P0-07 Pushed to GitHub: https://github.com/Akshaytho/fuel (CI on every push)
 - [ ] P0-08 App shell boots (spec 0002) — code DONE + bundle export verified; remaining: Harish confirms render on phone in Expo Go (light+dark)
 - [ ] P0-09 Storybook (or expo-router sandbox screen) for core components
-- [ ] P0-10 Supabase project (staging) + schema v1 migration + RLS policies + generated types
+- [ ] P0-10 Supabase: schema v1 migration WRITTEN (supabase/migrations/0001_init.sql, full RLS) + db-push script; existing project wccxzcrxdcqvprswdvlu (ap-south-1) to be used, override OK per Harish. Remaining: apply via Management API (needs sbp_ token from Harish) or Harish runs `node scripts/db-push.mjs` on laptop
 - [ ] P0-11 Sentry + PostHog wired (dev keys, EU hosting for PostHog)
 - [ ] P0-12 i18next scaffold; strings externalized from day one
 
@@ -34,6 +34,9 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] B-01 Decide minimum age / age-gate policy (Harish decision — DPDP under-18)
 - [ ] B-02 Decide Fuel Pro pricing + free/paid line (Harish decision)
 - [ ] B-03 Legal entity + data controller identity (Harish decision)
+- [ ] B-04 v2 pillar modules: training/hypertrophy, mobility & joints, rest/recovery (docs/product/vision-notes.md)
+- [ ] B-05 "Solo leveling" gamification layer design — levels/streaks across all pillars (vision-notes.md)
+- [ ] B-06 SECURITY: rotate Anthropic API key (exposed in photo/chat; unused so far); strengthen DB password + rotate JWT secret before launch
 
 ## Session log (append one line per session)
 
@@ -42,3 +45,4 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-07-27 · session 1c (cloud) · P0-07: pushed to github.com/Akshaytho/fuel via fine-grained PAT (deploy key unusable from cloud sandbox — SSH blocked; noted in SETUP context).
 - 2026-07-27 · session 1d (cloud) · P0-08 spec 0002 written; entry/babel/metro monorepo glue built; expo export caught .js-extension import bug in domain (fixed, 30 tests still green); iOS bundle exports clean. Awaiting on-phone confirmation.
 - 2026-07-27 · session 1e (cloud) · P1-01 done: @fuel/ui primitives built spec-first; visual harness (react-native-web + esbuild + Playwright/Chromium) catches rendering; fixed missing-ring bug (.web.js platform extensions) + ADR-005 violation (raw hex in NavPill → new onTint/shadow tokens).
+- 2026-07-27 · session 1f (cloud) · Vision notes captured (solo-leveling multi-pillar v2); schema v1 + RLS written; DB push from sandbox blocked (proxy is HTTPS-only — raw Postgres impossible); .env local-only, .env.example committed. Next: Management API token OR laptop db-push.
