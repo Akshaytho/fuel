@@ -50,6 +50,11 @@ Every work session follows the loop in `docs/playbook.md`:
   strings.ts per screen).
 - `packages/domain` stays pure: no React, no IO, no platform imports. All
   nutrition math lives there and is unit-tested.
+- DATA LIVES IN DATABASES, NEVER IN CODE (Harish's standing rule): no food
+  names, no content lists, no seed JSON checked into the repo. Pipelines
+  FETCH from sources and WRITE to the database. Demo/stub data in app code
+  is temporary by definition and must be removed by the task that replaces
+  it (tracked in TASKS.md).
 - Every module boundary validates with types; external data validates with Zod.
 - Units: canonical internal units are grams, ml, kcal. Display conversion
   happens at the UI edge only.
