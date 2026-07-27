@@ -180,3 +180,12 @@ describe('sumMacros edge (AC7 coverage)', () => {
     expect(sumMacros([])).toEqual({ kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
   });
 });
+
+describe('water target (spec 0007)', () => {
+  it('35 ml/kg rounded to 0.25 L', async () => {
+    const { waterLitersFor } = await import('../src/targets');
+    expect(waterLitersFor(68.2)).toBe(2.5);   // 2.387 → 2.5
+    expect(waterLitersFor(100)).toBe(3.5);
+    expect(() => waterLitersFor(0)).toThrow();
+  });
+});

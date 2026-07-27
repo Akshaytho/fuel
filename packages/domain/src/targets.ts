@@ -65,3 +65,9 @@ export function computeTargets(p: Profile): Targets {
     clamped,
   };
 }
+
+/** Daily water target: 35 ml/kg, rounded to nearest 0.25 L (spec 0007). */
+export function waterLitersFor(weight_kg: number): number {
+  assertPositiveFinite('weight_kg', weight_kg);
+  return Math.round((weight_kg * 0.035) * 4) / 4;
+}

@@ -1,5 +1,4 @@
 import { build } from 'esbuild';
-import { chromium } from 'playwright';
 import { writeFileSync } from 'fs';
 
 const stubPlugin = {
@@ -12,25 +11,10 @@ const stubPlugin = {
 };
 
 await build({
-  entryPoints: ['main.tsx'],
-  bundle: true,
-  outfile: 'out/bundle.js',
-  format: 'iife',
-  jsx: 'automatic',
-  loader: { '.tsx': 'tsx', '.ts': 'ts' },
+  entryPoints: ['main.tsx'], bundle: true, outfile: 'out/bundle.js', format: 'iife',
+  jsx: 'automatic', loader: { '.tsx': 'tsx', '.ts': 'ts' },
   resolveExtensions: ['.web.js', '.web.tsx', '.web.ts', '.tsx', '.ts', '.js', '.json'],
-  alias: { 'react-native': 'react-native-web' },
-  plugins: [stubPlugin],
+  alias: { 'react-native': 'react-native-web' }, plugins: [stubPlugin],
   define: { 'process.env.NODE_ENV': '"production"', '__DEV__': 'false', 'global': 'window', 'process.env.SUPA_URL': '"https://wccxzcrxdcqvprswdvlu.supabase.co"', 'process.env.SUPA_ANON': '"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjY3h6Y3J4ZGNxdnByc3dkdmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0Mzg3NjcsImV4cCI6MjA5OTAxNDc2N30.0G-e_dHSAKk2UW50HmFO0EcBzmOXu73Fuu6iLuy7-Cg"' },
 });
 writeFileSync('out/index.html', '<!doctype html><meta charset="utf-8"><body style="margin:0"><div id="root"></div><script src="bundle.js"></script>');
-
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const page = await browser.newPage({ viewport: { width: 1320, height: 1800 }, deviceScaleFactor: 2 });
-page.on('pageerror', (e) => console.error('PAGEERROR:', e.message));
-page.on('console', (m) => m.type() === 'error' && console.error('CONSOLE:', m.text()));
-await page.goto('file://' + process.cwd() + '/out/index.html');
-await page.waitForTimeout(1200);
-await page.screenshot({ path: 'out/primitives.png', fullPage: true });
-await browser.close();
-console.log('screenshot: out/primitives.png');

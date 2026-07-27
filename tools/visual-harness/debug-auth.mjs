@@ -1,0 +1,18 @@
+import { chromium } from 'playwright';
+const proxy = process.env.https_proxy || process.env.HTTPS_PROXY;
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', ...(proxy ? { proxy: { server: proxy } } : {}) });
+const ctx = await browser.newContext({ viewport: { width: 460, height: 980 }, ignoreHTTPSErrors: true });
+const page = await ctx.newPage();
+page.on('console', m => (m.type()==='error') && console.log('CONSOLE:', m.text().slice(0,150)));
+page.on('requestfailed', r => console.log('REQFAIL:', r.url().slice(0,80), '-', r.failure()?.errorText));
+page.on('response', r => { if (r.url().includes('supabase')) console.log('RESP:', r.status(), r.url().slice(0,90)); });
+await page.goto('file://' + process.cwd() + '/out/index.html');
+await page.waitForTimeout(700);
+await page.getByTestId('auth-email').click();
+await page.getByTestId('email-input').fill('debug-auth@fuel.test');
+await page.getByTestId('password-input').fill('e2e-Fuel-2026!x');
+await page.getByTestId('auth-submit').click();
+await page.waitForTimeout(6000);
+const err = await page.getByTestId('auth-error').textContent().catch(() => 'no error element');
+console.log('auth-error:', err);
+await browser.close();

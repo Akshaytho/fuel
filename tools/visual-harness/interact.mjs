@@ -17,7 +17,7 @@ await build({
   jsx: 'automatic', loader: { '.tsx': 'tsx', '.ts': 'ts' },
   resolveExtensions: ['.web.js', '.web.tsx', '.web.ts', '.tsx', '.ts', '.js', '.json'],
   alias: { 'react-native': 'react-native-web' }, plugins: [stubPlugin],
-  define: { 'process.env.NODE_ENV': '"production"', '__DEV__': 'false', 'global': 'window' },
+  define: { 'process.env.NODE_ENV': '"production"', '__DEV__': 'false', 'global': 'window', 'process.env.SUPA_URL': '"https://wccxzcrxdcqvprswdvlu.supabase.co"', 'process.env.SUPA_ANON': '"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjY3h6Y3J4ZGNxdnByc3dkdmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0Mzg3NjcsImV4cCI6MjA5OTAxNDc2N30.0G-e_dHSAKk2UW50HmFO0EcBzmOXu73Fuu6iLuy7-Cg"' },
 });
 writeFileSync('out/index.html', '<!doctype html><meta charset="utf-8"><body style="margin:0"><div id="root"></div><script src="bundle.js"></script>');
 
