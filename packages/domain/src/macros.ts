@@ -1,4 +1,4 @@
-import { FoodPer100g, LogEntryInput, Macros, assertNonNegativeFinite } from './types.js';
+import { FoodPer100g, LogEntryInput, Macros, assertNonNegativeFinite } from './types';
 
 /** Atwater factors (kcal per gram). */
 export const KCAL_PER_G = { protein: 4, carbs: 4, fat: 9 } as const;

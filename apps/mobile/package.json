@@ -2,7 +2,7 @@
   "name": "@fuel/mobile",
   "version": "0.1.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "test": "echo 'mobile: tests arrive with P1-01 components'"

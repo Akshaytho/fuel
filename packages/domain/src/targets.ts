@@ -1,8 +1,8 @@
 import {
   ActivityLevel, Goal, Profile, Targets,
   assertPositiveFinite,
-} from './types.js';
-import { round1, kcalOfProtein, kcalOfFat, kcalToCarbs_g, kcalToFat_g } from './macros.js';
+} from './types';
+import { round1, kcalOfProtein, kcalOfFat, kcalToCarbs_g, kcalToFat_g } from './macros';
 
 const ACTIVITY_FACTOR: Record<ActivityLevel, number> = {
   sedentary: 1.2,

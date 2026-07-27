@@ -1,5 +1,5 @@
-import { DaySummary, LogEntryInput, Macros, Targets } from './types.js';
-import { consumedFromEntries, round1 } from './macros.js';
+import { DaySummary, LogEntryInput, Macros, Targets } from './types';
+import { consumedFromEntries, round1 } from './macros';
 
 /** Ratio that tolerates a zero target (0 consumed / 0 target = 0, else ∞-safe 1+). */
 function ratio(consumed: number, target: number): number {
