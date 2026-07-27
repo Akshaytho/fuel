@@ -27,7 +27,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] P1-03 Spec + build: onboarding (goal-first) using domain targets engine
 - [ ] P1-04 Spec + build: food search + portion sheet (local seed DB first)
 - [ ] P1-05 Spec + build: offline log store (SQLite) + sync queue + idempotency
-- [ ] P1-06 Food cache service: OFF + USDA seed import pipeline
+- [ ] P1-06 Food seed: pipeline BUILT+PROVEN (600 USDA foods live in DB, search verified; zero data in repo). Remaining for done: full ~8,000-food run — blocked on valid USDA key (photo key invalid; demo key rate-limited). Then OFF barcode layer (with P2 scan)
 - [ ] P1-07 Data export + delete-account flows (compliance, launch-blocking)
 
 ## Backlog / discovered work
@@ -53,3 +53,4 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-07-27 · session 1i (cloud) · Harish review caught layout divergence from production Summary; design-screen extractor added; CLAUDE.md rule: screen builds must verify against extracted design screenshot side-by-side. P1-02b opened.
 - 2026-07-27 · session 1j (cloud) · P1-02b: screen rebuilt to production design per new CLAUDE.md rule; review fixes: meal rows under tab bar (scroll padding), StatCard wrap. 47 tests green, bundle exports clean.
 - 2026-07-27 · session 1k (cloud) · Phase-gate rule adopted (no advancing with half-work); P1-02b polish closed: real line icons (Scan/Chat/Flame) replace emoji in empty-state rows.
+- 2026-07-27 · session 1l (cloud) · Data-in-DB-only rule adopted; migration 0002; seed pipeline live — 600 foods loaded via DEMO_KEY before rate limit; real USDA key needed (photo transcription invalid).
