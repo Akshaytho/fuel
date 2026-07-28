@@ -28,7 +28,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] P1-04 Log flow (spec 0005): LogSheet + SearchScreen + PortionSheet match design (side-by-side verified, light+dark); LIVE search proven vs Supabase (scripts/check-search.py); portion math live via domain; macro tokens corrected to production mapping (protein orange/carbs purple/fat blue). Stubs marked: Scan/Describe/Label→P2, Saved/Edit-food→backlog, Copy-yesterday→P1-05
 - [x] P1-05 Offline store + sync (spec 0006): @fuel/store (9 unit tests: instant add, crash recovery, retry, ordering); LIVE integration proof (idempotent replay=1 row, RLS isolation, e2e users) via check-sync.py; 16-step driven-UI walkthrough ALL PASS (every screen control clicked+asserted, offline round-trip); app wired to expo-sqlite kv store, demo data DELETED. Remote sync attaches at P1-03 (needs auth user)
 - [ ] P1-06 Food seed: pipeline BUILT+PROVEN (600 USDA foods live in DB, search verified; zero data in repo). Remaining for done: full ~8,000-food run — blocked on valid USDA key (photo key invalid; demo key rate-limited). Then OFF barcode layer (with P2 scan)
-- [ ] P1-07 Data export + delete-account flows (compliance, launch-blocking)
+- [x] P1-07 Profile + export + delete (spec 0008): Profile screen per design (+ compliance Delete row); CSV export w/ profile lines; delete-account Edge Function DEPLOYED (JWT-verified, 401s proven) erasing rows+auth user; 15-step lifecycle journey ALL PASS; erasure admin-verified vs control user. Phase 1 code COMPLETE — phase exit = Harish's on-phone run (P0-08)
 
 ## Backlog / discovered work
 
@@ -61,3 +61,4 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] B-10 Launch: re-enable email confirmations (mailer_autoconfirm=true set for staging)
 - [ ] P1-05b Entry PULL on fresh device/sign-in (push-first v1; server has the data)
 - 2026-07-27 · session 1o (cloud) · P1-03 done: journey harness runs the REAL AppRoot (same component as device) with live Supabase (curl bridge for sandbox Chromium); 10/10 journey steps green; DB-side entry verified. New-user→returning-user loop closed.
+- 2026-07-27 · session 1p (cloud) · P1-07 done: edge function via Management API deploy; full GDPR arc in one driven journey (signup→log→export→delete→Welcome); server-side erasure verified with control account.
