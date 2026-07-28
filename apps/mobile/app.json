@@ -6,7 +6,15 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": { "bundleIdentifier": "app.fuel.mobile", "supportsTablet": false },
-    "android": { "package": "app.fuel.mobile" }
+    "ios": {
+      "bundleIdentifier": "app.fuel.mobile",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "app.fuel.mobile"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }
