@@ -60,12 +60,10 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] B-23 Verification harness runs react-native-web in Chromium, which HAS crypto.randomUUID
       and a UTC-ish CI clock — it structurally could not catch P0-A or P0-B. Harness must run
       at least one device-shaped check (or CI must pin a non-UTC TZ + assert no Web Crypto).
-- [ ] B-24 REDEPLOY delete-account edge function: source now handles CORS preflight (OPTIONS
-      204 + Access-Control-Allow-* on every response) but the DEPLOYED copy predates it, so
-      browser/web callers die at preflight (native apps unaffected — no CORS there). Found by
-      the first on-Mac headed-Chrome journey (the old sandbox curl bridge masked it). Needs
-      Harish's sbp_ Management token or dashboard deploy. Until then the journey harness
-      bridges ONLY functions/v1 through curl; auth/rest run real browser network.
+- [x] B-24 DONE (session 3, cloud): delete-account v2 redeployed via Management API with the
+      CORS-fixed source; live-verified — OPTIONS preflight 204 with Access-Control-Allow-*
+      headers, unauthenticated POST still 401. Laptop harness can now drop the functions/v1
+      curl bridge.
 - [ ] B-01 Decide minimum age / age-gate policy (Harish decision — DPDP under-18)
 - [ ] B-02 Decide Fuel Pro pricing + free/paid line (Harish decision)
 - [ ] B-03 Legal entity + data controller identity (Harish decision)
@@ -102,3 +100,4 @@ Add newly discovered work as new boxes — never do it silently.
   P0-C (found BY the on-phone run, which is the point of the gate) Welcome screen made sign-in impossible: "Use email instead" — the only working auth path until B-09 — was rendered in secondaryLabel grey while "Restore purchase" (a coming-soon stub) got tint+600 weight, and the only tinted glyph in the email link was the "·" separator. Every affordance that looked tappable answered "Coming soon". Fixed: tint/weight moved to the email link, Restore de-emphasized, separator neutral, hitSlop added. No design-doc divergence — the tint was on the wrong element.
   Tests 58 → 66 green. Remaining 12 findings logged as B-12..B-22. Phase gate still open: awaiting Harish's on-phone run (P0-08).
 - 2026-07-28 · session 2b (Harish's Mac) · SDK-54 aftermath fixed live during phone attempts: duplicate React (ui pinned 19.0.0 vs app 19.1.0 → "Invalid hook call" on device) and duplicate react-native-svg (caret drift 15.15.5 vs 15.12.1 → "two views named RNSVGCircle"); exact pins + metro singleton resolveRequest for react/react-native/react-native-svg (guard, not just pins). B-15 fixed + verified vs live GoTrue. Welcome auth-link inversion fixed (P0-C). Harness PORTED to laptop (was cloud-only: hardcoded /home/claude path, /opt/pw-browsers, curl bridge) — now HEADED=1 runs the real AppRoot in visible Chrome, phone-frame, human-paced typing. Full 15-step lifecycle run headed on Mac: found delete-account edge fn lacks CORS (browser preflight dies; sandbox bridge had masked it) → source fixed, B-24 redeploy pending, harness bridges only functions/v1 meanwhile. Re-run: 15/15 FULLY PASSED (screenshots tools/visual-harness/out/j1..j7). Both journey accounts verified erased server-side (sign-in 400). Phone gate (P0-08) STILL OPEN — Expo Go run on the physical device remains the exit condition.
+- 2026-07-28 · session 3 (cloud) · Pulled session-2/2b work from Harish's Mac; understood all findings (3 P0s incl. Hermes-no-WebCrypto sync-killer + UTC day bucket + Welcome tint inversion; SDK54 aftermath; harness ported/headed). Verified 66 tests green here post-SDK54. Closed B-24 (edge fn v2 live w/ CORS, preflight 204 verified). Next: audit fixes B-12..B-23 in order.
