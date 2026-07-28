@@ -32,6 +32,40 @@ Add newly discovered work as new boxes — never do it silently.
 
 ## Backlog / discovered work
 
+- [ ] B-11 SDK 54 upgrade landed out-of-band (expo 53→54, RN 0.79→0.81.5, react 19.0→19.1,
+      expo-sqlite 15→16, rn-svg→15.12.1). Forced: Expo Go only ever supports the newest SDK.
+      Unplanned change to a "Phase 1 complete" tree — needs its own review/commit.
+- [ ] B-12 Meal selection is a DEAD CONTROL: PortionSheet passes `meal`, AppRoot.logIt drops
+      it (`_meal`); no `meal` field in LocalEntry or log_entries. Needs spec + migration.
+- [ ] B-13 Trends (tab 1) and Report (tab 2) are dead — no handler, no feedback. Wire or
+      mark honestly per the no-dead-controls rule.
+- [ ] B-14 Access token never refreshed after boot (~1h expiry) → later pushes 401 into the
+      silent `catch` in sync(). Needs refresh-on-401 + retry.
+- [x] B-15 FIXED (session 2): sign-in→sign-up fallback kept, but a sign-up rejection of
+      "already registered" now surfaces as "Wrong password for this email" (the only way that
+      branch is reached). Regex verified against live GoTrue 422 user_already_exists.
+- [ ] B-16 Fabricated Today data: `streak {days:1}` hardcoded, `water.liters` always 0 with a
+      dead "+ Add". Violates the data-in-DB rule — back with real data or remove.
+- [ ] B-17 "Day 1" shows on ANY day with no entries — a long-time user who hasn't logged today
+      sees the Day-1 empty state. Use days-since-createdAt, not today's entry count.
+- [ ] B-18 Avatar hardcoded to "A" (TodayScreen Header) for every user.
+- [ ] B-19 "Offline — your log will sync" is really "unsynced" (`pendingCount > 0`). Separate
+      genuine connectivity from pending-sync, and surface sync failures instead of swallowing.
+- [ ] B-20 Search fires one request per keystroke (no debounce); results rank alphabetically,
+      so "banana" surfaces "Babyfood, apple-banana juice" before "Bananas, raw".
+- [ ] B-21 AppRoot recomputes remaining/progress inline instead of calling summarizeDay(),
+      bypassing day.ts's zero-guard + round1. The tested domain path is not the shipped path.
+- [ ] B-22 CSV export: food names beginning = + - @ execute as formulas in Excel/Sheets.
+      Low risk while names come from USDA; real once users name their own foods.
+- [ ] B-23 Verification harness runs react-native-web in Chromium, which HAS crypto.randomUUID
+      and a UTC-ish CI clock — it structurally could not catch P0-A or P0-B. Harness must run
+      at least one device-shaped check (or CI must pin a non-UTC TZ + assert no Web Crypto).
+- [ ] B-24 REDEPLOY delete-account edge function: source now handles CORS preflight (OPTIONS
+      204 + Access-Control-Allow-* on every response) but the DEPLOYED copy predates it, so
+      browser/web callers die at preflight (native apps unaffected — no CORS there). Found by
+      the first on-Mac headed-Chrome journey (the old sandbox curl bridge masked it). Needs
+      Harish's sbp_ Management token or dashboard deploy. Until then the journey harness
+      bridges ONLY functions/v1 through curl; auth/rest run real browser network.
 - [ ] B-01 Decide minimum age / age-gate policy (Harish decision — DPDP under-18)
 - [ ] B-02 Decide Fuel Pro pricing + free/paid line (Harish decision)
 - [ ] B-03 Legal entity + data controller identity (Harish decision)
@@ -62,3 +96,9 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] P1-05b Entry PULL on fresh device/sign-in (push-first v1; server has the data)
 - 2026-07-27 · session 1o (cloud) · P1-03 done: journey harness runs the REAL AppRoot (same component as device) with live Supabase (curl bridge for sandbox Chromium); 10/10 journey steps green; DB-side entry verified. New-user→returning-user loop closed.
 - 2026-07-27 · session 1p (cloud) · P1-07 done: edge function via Management API deploy; full GDPR arc in one driven journey (signup→log→export→delete→Welcome); server-side erasure verified with control account.
+- 2026-07-28 · session 2 (Harish's Mac) · P0-08 prep + full-surface audit. Repo cloned, node 22 + pnpm 10.28.0, pnpm verify green. Expo Go forced SDK 53→54 (B-11). Audit found 14 issues; TWO P0s fixed under TDD (red proven first):
+  P0-A client_id was not a valid uuid on device — RN/Hermes has no Web Crypto (expo 54 installs TextDecoder/URL/structuredClone, not crypto), so defaultId's fallback ran and emitted `<hextime>-<hex>-<hex>`; log_entries.client_id is a Postgres `uuid` col, which 400s with 22P02, and sync() swallowed it in `catch { break }`. Net effect: NOTHING has ever synced from a real device; the "offline" badge stayed on while fully online. Invisible to all tests because the harness runs in Chromium (has crypto.randomUUID). Fixed: RFC 4122 v4 fallback; verified live — the generated id now parses (HTTP 200, was 400).
+  P0-B day bucket used toISOString() (UTC) while the header rendered the LOCAL date; in IST everything logged 00:00–05:30 filed under yesterday and vanished from Today at 05:30. Fixed: new domain `localDayISO()`; domain suite now pins TZ=Asia/Kolkata (vitest.config.ts) because ubuntu-latest CI is UTC and structurally could not catch it (B-23).
+  P0-C (found BY the on-phone run, which is the point of the gate) Welcome screen made sign-in impossible: "Use email instead" — the only working auth path until B-09 — was rendered in secondaryLabel grey while "Restore purchase" (a coming-soon stub) got tint+600 weight, and the only tinted glyph in the email link was the "·" separator. Every affordance that looked tappable answered "Coming soon". Fixed: tint/weight moved to the email link, Restore de-emphasized, separator neutral, hitSlop added. No design-doc divergence — the tint was on the wrong element.
+  Tests 58 → 66 green. Remaining 12 findings logged as B-12..B-22. Phase gate still open: awaiting Harish's on-phone run (P0-08).
+- 2026-07-28 · session 2b (Harish's Mac) · SDK-54 aftermath fixed live during phone attempts: duplicate React (ui pinned 19.0.0 vs app 19.1.0 → "Invalid hook call" on device) and duplicate react-native-svg (caret drift 15.15.5 vs 15.12.1 → "two views named RNSVGCircle"); exact pins + metro singleton resolveRequest for react/react-native/react-native-svg (guard, not just pins). B-15 fixed + verified vs live GoTrue. Welcome auth-link inversion fixed (P0-C). Harness PORTED to laptop (was cloud-only: hardcoded /home/claude path, /opt/pw-browsers, curl bridge) — now HEADED=1 runs the real AppRoot in visible Chrome, phone-frame, human-paced typing. Full 15-step lifecycle run headed on Mac: found delete-account edge fn lacks CORS (browser preflight dies; sandbox bridge had masked it) → source fixed, B-24 redeploy pending, harness bridges only functions/v1 meanwhile. Re-run: 15/15 FULLY PASSED (screenshots tools/visual-harness/out/j1..j7). Both journey accounts verified erased server-side (sign-in 400). Phone gate (P0-08) STILL OPEN — Expo Go run on the physical device remains the exit condition.
