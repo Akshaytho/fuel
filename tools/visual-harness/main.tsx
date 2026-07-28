@@ -26,10 +26,12 @@ function Chrome() {
 }
 
 function App() {
+  // Phone-portrait layout: the frame IS the window (390×844, no desktop
+  // chrome around it) so a headed browser at 390-wide reads as a device.
   return (
-    <View style={{ backgroundColor: '#5a5a5e', padding: 24, gap: 12, minHeight: 940 }}>
+    <View style={{ backgroundColor: '#000', minHeight: 890 }}>
       <Chrome />
-      <View style={{ width: 390, height: 844, borderRadius: 24, overflow: 'hidden' }}>
+      <View style={{ width: 390, height: 844, overflow: 'hidden' }}>
         <AppRoot
           theme={light}
           kv={kv}

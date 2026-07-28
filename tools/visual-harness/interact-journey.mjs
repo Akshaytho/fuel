@@ -8,11 +8,19 @@ await import('./build-only.mjs');
 
 import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await browser.newContext({ viewport: { width: 460, height: 980 } });
-// Sandbox note: headless Chromium cannot tunnel through the egress relay,
-// so Supabase calls are bridged through curl (which can). App code untouched.
-await ctx.route('**supabase.co/**', async (route) => {
+
+// Portable launch (the old hardcoded /opt/pw-browsers/chromium existed only in
+// the cloud sandbox). HEADED=1 opens the user's real Google Chrome in a
+// phone-portrait window with SLOWMO ms between actions so a human can watch.
+const HEADED = process.env.HEADED === '1';
+const SLOWMO = Number(process.env.SLOWMO ?? (HEADED ? 300 : 0));
+const launchOpts = { headless: !HEADED, slowMo: SLOWMO, args: ['--window-size=410,980', '--window-position=80,40'] };
+let browser;
+try { browser = await chromium.launch({ channel: 'chrome', ...launchOpts }); }
+catch { browser = await chromium.launch(launchOpts); } // fall back to bundled Chromium
+const ctx = await browser.newContext({ viewport: { width: 390, height: 890 } });
+// curl transport bridge (replays method/headers/body outside the browser).
+const bridge = async (route) => {
   const req = route.request();
   const tmp = `/tmp/pw-body-${Math.random().toString(36).slice(2)}.json`;
   const args = ['-s', '-o', tmp, '-w', '%{http_code}', '-m', '30', '-X', req.method(), req.url()];
@@ -29,10 +37,28 @@ await ctx.route('**supabase.co/**', async (route) => {
   } catch (e) {
     await route.fulfill({ status: 599, contentType: 'application/json', body: JSON.stringify({ error: String(e).slice(0, 120) }) });
   }
-});
+};
+// Edge Functions: the DEPLOYED delete-account predates its CORS fix (B-24), so a
+// browser kills the call at preflight — native apps are unaffected. Until Harish
+// redeploys, only this route is bridged; auth/rest stay real browser network.
+await ctx.route('**supabase.co/functions/v1/**', bridge);
+// Cloud-sandbox egress relay needs the FULL bridge — opt-in via CURL_BRIDGE=1.
+if (process.env.CURL_BRIDGE === '1') await ctx.route('**supabase.co/**', bridge);
 const page = await ctx.newPage();
 page.on('pageerror', (e) => { console.error('PAGEERROR:', e.message); process.exitCode = 1; });
 await page.goto('file://' + process.cwd() + '/out/index.html');
+if (HEADED) {
+  // Raise the window — a headed browser that opens BEHIND the IDE shows nobody anything.
+  await page.bringToFront();
+  for (const app of ['Google Chrome', 'Chromium']) {
+    try { execFileSync('osascript', ['-e', `tell application "${app}" to activate`]); break; } catch { /* next */ }
+  }
+}
+// Human-paced typing for headed demos; instant fill otherwise.
+const human = async (loc, v) => {
+  if (HEADED) { await loc.click(); await loc.pressSequentially(String(v), { delay: 85 }); }
+  else await loc.fill(String(v));
+};
 
 const step = async (name, fn) => {
   try { await fn(); console.log('PASS', name); }
@@ -57,8 +83,8 @@ await step('Apple button is honest (coming-soon), not fake', async () => {
 });
 await step('email path → LIVE signup against Supabase', async () => {
   await page.getByTestId('auth-email').click();
-  await page.getByTestId('email-input').fill(EMAIL);
-  await page.getByTestId('password-input').fill(PW);
+  await human(page.getByTestId('email-input'), EMAIL);
+  await human(page.getByTestId('password-input'), PW);
   await page.getByTestId('auth-submit').click();
   await page.getByText('What are we working toward?').waitFor({ timeout: 15000 });
 });
@@ -71,9 +97,9 @@ await step('goal cards select exclusively; continue gated then advances', async 
 await step('about-you: continue disabled until valid, then advances', async () => {
   await page.getByTestId('about-continue').click();          // invalid yet → stays
   await page.getByText('About you').waitFor();
-  await page.getByTestId('age-input').fill('28');
-  await page.getByTestId('height-input').fill('165');
-  await page.getByTestId('weight-input').fill('68.2');
+  await human(page.getByTestId('age-input'), '28');
+  await human(page.getByTestId('height-input'), '165');
+  await human(page.getByTestId('weight-input'), '68.2');
   await page.getByTestId('activity-light').click();
   await page.getByTestId('about-continue').click();
   await page.getByText('Your starting plan').waitFor();
@@ -99,7 +125,7 @@ await step('log real food: live search → portion → rings move', async () => 
   await page.getByText(/YOUR GO-TOS/).waitFor();
   await page.locator('input').first().click();
   await page.getByText('Searches your food database').waitFor({ timeout: 4000 });
-  await page.locator('input').first().fill('banana');
+  await human(page.locator('input').first(), 'banana');
   await page.waitForTimeout(2500);                       // live query
   await page.locator('[data-testid^="add-"]').first().click();
   await page.getByTestId('log-cta').waitFor();
@@ -156,5 +182,7 @@ await step('Delete confirmed: server + local erased, back to Welcome', async () 
 });
 await page.screenshot({ path: 'out/j7-deleted.png' });
 console.log('JOURNEY_EMAIL=' + EMAIL);
+// Headed runs: hold the final screen so the human actually sees where it ended.
+if (HEADED) await page.waitForTimeout(Number(process.env.HOLD_MS ?? 10000));
 await browser.close();
 console.log(process.exitCode ? 'JOURNEY HAD FAILURES' : 'JOURNEY FULLY PASSED');
