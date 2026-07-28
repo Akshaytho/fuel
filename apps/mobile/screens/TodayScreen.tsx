@@ -18,9 +18,9 @@ export type TodayVM =
       targets: Targets;
       summary: DaySummary;
       entries: EntryVM[];           // flat "TODAY'S MEALS" list per design
-      streak?: { days: number; isLongest: boolean };
-      water?: { liters: number; goalLiters: number };
-      coach?: string;               // green strip message; omit to hide
+      streak?: { days: number; isLongest: boolean } | undefined;
+      water?: { liters: number; goalLiters: number } | undefined;
+      coach?: string | undefined;   // green strip message; omit to hide
     };
 
 export interface TodayScreenProps {
@@ -35,7 +35,7 @@ export interface TodayScreenProps {
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
-function Header({ theme, dateLabel, onProfile }: { theme: Theme; dateLabel?: string; onProfile: () => void }) {
+function Header({ theme, dateLabel, onProfile }: { theme: Theme; dateLabel?: string | undefined; onProfile: () => void }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
       <View style={{ gap: 2 }}>

@@ -20,12 +20,13 @@ function ratio(consumed: number, target: number): number {
 }
 
 /**
- * Aggregate a day's entries against targets → Today-screen summary.
+ * Already-aggregated consumed macros against targets → Today-screen summary.
+ * This is THE shipped calculation path (B-21): AppRoot calls this directly
+ * with the store's day totals, so the tested path IS the displayed path.
  * remaining components go negative when over; progress is uncapped
  * (the UI decides how to display >100%).
  */
-export function summarizeDay(entries: readonly LogEntryInput[], targets: Targets): DaySummary {
-  const consumed: Macros = consumedFromEntries(entries);
+export function summarizeConsumed(consumed: Macros, entryCount: number, targets: Targets): DaySummary {
   const remaining: Macros = {
     kcal: Math.round(targets.kcal - consumed.kcal),
     protein_g: round1(targets.protein_g - consumed.protein_g),
@@ -42,6 +43,11 @@ export function summarizeDay(entries: readonly LogEntryInput[], targets: Targets
       fat: ratio(consumed.fat_g, targets.fat_g),
     },
     isOver: consumed.kcal > targets.kcal,
-    entryCount: entries.length,
+    entryCount,
   };
+}
+
+/** Convenience: raw entries → summary (scales + sums, then summarizes). */
+export function summarizeDay(entries: readonly LogEntryInput[], targets: Targets): DaySummary {
+  return summarizeConsumed(consumedFromEntries(entries), entries.length, targets);
 }

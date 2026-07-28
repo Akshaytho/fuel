@@ -13,6 +13,17 @@ Every work session follows the loop in `docs/playbook.md`:
    UI matches the extracted design screen AND every function in it works.
    Never advance to the next item while known half-work exists — finish it
    or get Harish's explicit OK to defer (logged in TASKS.md).
+0a. HUMAN-TAP TESTING (Harish's standing rule): every screen test navigates
+   the way a real user does — tapping visible controls and typing into
+   fields, in order, from app open. NEVER navigate by URL, injected state,
+   storage seeding, or calling handlers directly. `page.reload()` is allowed
+   ONLY to simulate killing and relaunching the app, never as a shortcut to
+   reach a screen. A flow you can't reach by tapping is a broken flow.
+0b. MOTION IS PART OF DONE (Harish's standing rule): the app must FEEL
+   alive, not like static pages. App open plays the Fuel brand animation;
+   rings/progress animate to their value; stage transitions animate;
+   pressables give press feedback. A screen that snaps into place fully
+   formed is half-work under rule 0.
 1. Read `CLAUDE.md`, `docs/TASKS.md`, and the relevant `docs/features/*.md` spec.
 2. Do ONE unchecked task from TASKS.md — only that task.
 3. For new features: write/extend the spec FIRST (restatement, UI mapping,

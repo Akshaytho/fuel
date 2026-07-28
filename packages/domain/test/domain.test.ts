@@ -30,12 +30,12 @@ describe('targets (AC1)', () => {
 
   it('computes goal-adjusted targets for profile A (lose)', () => {
     const t = computeTargets(profileA);
-    expect(t.kcal).toBe(2044); // 2044.45 rounded
-    expect(t.protein_g).toBeCloseTo(126, 1); // 1.8 × 70
+    expect(t.kcal).toBe(2044); // TDEE − 20% (under the 1000 kcal cap), rounded
+    expect(t.protein_g).toBeCloseTo(140, 1); // lose → 2.0 g/kg × 70 (BMI 22.9, no adjustment)
     // fat = 30% of 2044.45 kcal / 9 = 68.1483…
     expect(t.fat_g).toBeCloseTo(68.1, 1);
-    // carbs = (2044.45 − 504 − 613.335) / 4 = 231.778…
-    expect(t.carbs_g).toBeCloseTo(231.8, 1);
+    // carbs = (2044.45 − 560 − 613.335) / 4 = 217.78
+    expect(t.carbs_g).toBeCloseTo(217.8, 1);
     expect(t.clamped).toBe(false);
   });
 
@@ -43,8 +43,47 @@ describe('targets (AC1)', () => {
     const t = computeTargets(profileB);
     expect(bmr(profileB)).toBeCloseTo(1321.5, 2);
     expect(t.kcal).toBe(1817); // 1817.0625 rounded
-    expect(t.protein_g).toBeCloseTo(108, 1);
+    expect(t.protein_g).toBeCloseTo(96, 1); // maintain → 1.6 g/kg × 60
     expect(t.clamped).toBe(false);
+  });
+
+  it('macros always sum to the calorie target (research 0001 invariant 1)', () => {
+    for (const p of [profileA, profileB,
+      { ...profileA, goal: 'gain' as const }, { ...profileB, goal: 'lose' as const },
+      { ...profileA, weight_kg: 150 }, { ...profileB, weight_kg: 40, age_years: 80 }]) {
+      const t = computeTargets(p);
+      const sum = t.protein_g * 4 + t.carbs_g * 4 + t.fat_g * 9;
+      expect(Math.abs(sum - t.kcal)).toBeLessThanOrEqual(3); // rounding slack only
+      expect(t.carbs_g).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('caps the deficit at 1000 kcal/day for very high TDEEs (research §3)', () => {
+    const big: Profile = { sex: 'male', age_years: 30, height_cm: 200, weight_kg: 180, activity: 'very_active', goal: 'lose' };
+    // TDEE 5519.5 → −20% would be 1103.9; capped at 1000 → 4519.5 → 4520
+    expect(computeTargets(big).kcal).toBe(4520);
+  });
+
+  it('caps the surplus at 500 kcal/day (research §3)', () => {
+    const big: Profile = { sex: 'male', age_years: 30, height_cm: 200, weight_kg: 180, activity: 'very_active', goal: 'gain' };
+    // TDEE 5519.5 → +10% would be 551.95; capped at 500 → 6019.5 → 6020
+    expect(computeTargets(big).kcal).toBe(6020);
+  });
+
+  it('doses protein by ADJUSTED weight above BMI 25 (research §5)', () => {
+    const heavy: Profile = { sex: 'male', age_years: 40, height_cm: 180, weight_kg: 150, activity: 'moderate', goal: 'lose' };
+    // BMI-25 weight = 81 kg; reference = 81 + 0.25×69 = 98.25 → 2.0 g/kg = 196.5 g
+    // (total-weight dosing would have said 300 g — a broken plan)
+    expect(computeTargets(heavy).protein_g).toBeCloseTo(196.5, 1);
+  });
+
+  it('caps protein at 35% of calories when g/kg would exceed it (AMDR)', () => {
+    // journey profile: female 28y 165cm 68.2kg light lose → kcal 1553.475
+    const p: Profile = { sex: 'female', age_years: 28, height_cm: 165, weight_kg: 68.2, activity: 'light', goal: 'lose' };
+    const t = computeTargets(p);
+    expect(t.kcal).toBe(1553);
+    expect(t.protein_g).toBeCloseTo(135.9, 1); // capped at 0.35 × 1553.475 / 4
+    expect(t.protein_g * 4).toBeLessThanOrEqual(0.35 * 1553.475 + 0.5);
   });
 });
 
@@ -79,14 +118,24 @@ describe('input validation (AC2)', () => {
   });
 });
 
-describe('safety floor (AC3)', () => {
-  it('clamps an aggressive deficit to the 1200 kcal floor and flags it', () => {
-    // tiny, older, sedentary profile on "lose" lands below 1200
+describe('safety floor (AC3, sex-specific per research §4)', () => {
+  it('clamps a small female profile to 1200 and flags it', () => {
     const t = computeTargets({
       sex: 'female', age_years: 80, height_cm: 145, weight_kg: 40,
       activity: 'sedentary', goal: 'lose',
     });
-    expect(t.kcal).toBe(KCAL_FLOOR);
+    expect(t.kcal).toBe(KCAL_FLOOR.female);
+    expect(t.kcal).toBe(1200);
+    expect(t.clamped).toBe(true);
+  });
+
+  it('clamps a small male profile to 1500 (not 1200) and flags it', () => {
+    const t = computeTargets({
+      sex: 'male', age_years: 60, height_cm: 150, weight_kg: 45,
+      activity: 'sedentary', goal: 'lose',
+    });
+    expect(t.kcal).toBe(KCAL_FLOOR.male);
+    expect(t.kcal).toBe(1500);
     expect(t.clamped).toBe(true);
   });
 });
@@ -181,11 +230,17 @@ describe('sumMacros edge (AC7 coverage)', () => {
   });
 });
 
-describe('water target (spec 0007)', () => {
+describe('water target (spec 0007, clamped per research §7)', () => {
   it('35 ml/kg rounded to 0.25 L', async () => {
     const { waterLitersFor } = await import('../src/targets');
     expect(waterLitersFor(68.2)).toBe(2.5);   // 2.387 → 2.5
     expect(waterLitersFor(100)).toBe(3.5);
     expect(() => waterLitersFor(0)).toThrow();
+  });
+
+  it('clamps to [1.5, 4.0] L at extreme weights', async () => {
+    const { waterLitersFor } = await import('../src/targets');
+    expect(waterLitersFor(200)).toBe(4);    // 7 L unclamped — dangerous advice
+    expect(waterLitersFor(30)).toBe(1.5);   // 1.05 L unclamped
   });
 });

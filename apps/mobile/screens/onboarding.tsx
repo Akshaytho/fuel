@@ -60,7 +60,7 @@ export function WelcomeScreen({ theme, onApple, onGoogle, onEmail, onRestore }: 
 
 /* ---------- Email auth sheet (the design's "use email instead" path) ---------- */
 export function EmailAuthSheet({ theme, busy, error, onSubmit }: {
-  theme: Theme; busy: boolean; error?: string; onSubmit: (email: string, password: string) => void;
+  theme: Theme; busy: boolean; error?: string | undefined; onSubmit: (email: string, password: string) => void;
 }) {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');

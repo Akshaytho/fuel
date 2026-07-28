@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, TextInput } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
+import { pressedStyle } from './motion';
 
 /** Bottom-sheet container with grabber, per Log/Portion sheet designs. */
 export function Sheet({ theme, children }: { theme: Theme; children: React.ReactNode }) {
@@ -91,7 +92,7 @@ export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = tr
 
 /** Selectable chip (portion sizes, meals). */
 export function SelectChip({ theme, label, selected, tintedBg, tintedColor, onPress, compact, testID }: {
-  theme: Theme; label: string; selected: boolean; tintedBg?: string; tintedColor?: string; onPress: () => void; compact?: boolean; testID?: string;
+  theme: Theme; label: string; selected: boolean; tintedBg?: string | undefined; tintedColor?: string | undefined; onPress: () => void; compact?: boolean; testID?: string;
 }) {
   return (
     <Pressable testID={testID} onPress={onPress} style={{
@@ -122,9 +123,9 @@ export function MacroPreviewTile({ theme, value, label, color }: {
 
 export function CTAButton({ theme, label, onPress, testID }: { theme: Theme; label: string; onPress: () => void; testID?: string }) {
   return (
-    <Pressable testID={testID} onPress={onPress} style={{
+    <Pressable testID={testID} onPress={onPress} style={({ pressed }) => [{
       backgroundColor: theme.tint, borderRadius: radius.card, alignItems: 'center', paddingVertical: space.s4,
-    }}>
+    }, pressedStyle(pressed)]}>
       <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>{label}</Text>
     </Pressable>
   );

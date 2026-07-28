@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Modal, Pressable } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
-  scalePer100g, summarizeDay, computeTargets, mealForHour, localDayISO,
+  scalePer100g, summarizeConsumed, computeTargets, mealForHour, localDayISO,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
 import { LogStore, type StorageAdapter } from '@fuel/store';
@@ -15,7 +15,7 @@ import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, 
 import { ProfileScreen } from './ProfileScreen';
 import { buildExportCSV } from '../data/exportData';
 import { pf } from './profileStrings';
-import { Sheet, CTAButton } from '@fuel/ui';
+import { Sheet, CTAButton, BootSplash, FadeSlideIn } from '@fuel/ui';
 import { Text } from 'react-native';
 import { onb } from './onbStrings';
 
@@ -69,16 +69,19 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
 
   useEffect(() => {
     (async () => {
+      const t0 = Date.now();
       await store.init();
       await auth.init();                       // restore session if any
       const raw = await kv.getItem(PROFILE_KEY);
-      if (raw && raw.length > 2) {
-        setPlan(JSON.parse(raw) as StoredPlan);
-        setStage('today');
-        void store.sync().then(() => bump());  // background push of anything pending
-      } else {
-        setStage('welcome');
-      }
+      const returning = !!raw && raw.length > 2;
+      if (returning) setPlan(JSON.parse(raw!) as StoredPlan);
+      // Rule 0b: app open is a brand MOMENT — hold the splash long enough
+      // for its spring to land, never a static flash (min 1400 ms).
+      const hold = Math.max(0, 1400 - (Date.now() - t0));
+      setTimeout(() => {
+        setStage(returning ? 'today' : 'welcome');
+        if (returning) void store.sync().then(() => bump()); // background push
+      }, hold);
     })();
   }, []);
 
@@ -118,31 +121,16 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     const targets = plan.targets;
     const day = todayISO();
     const entries = store.entriesForDay(day);
-    const consumed = store.consumedForDay(day);
-    const base = summarizeDay([], targets);
+    // B-21 fix: the DISPLAYED numbers come from the same unit-tested domain
+    // function the suite exercises — no parallel inline math to drift.
+    const summary = summarizeConsumed(store.consumedForDay(day), entries.length, targets);
     return {
       kind: 'ready',
       dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
         + (entries.length === 0 ? ' · Day 1' : ''),
       offline: store.pendingCount > 0,
       targets,
-      summary: {
-        ...base, consumed,
-        remaining: {
-          kcal: Math.round(targets.kcal - consumed.kcal),
-          protein_g: targets.protein_g - consumed.protein_g,
-          carbs_g: targets.carbs_g - consumed.carbs_g,
-          fat_g: targets.fat_g - consumed.fat_g,
-        },
-        progress: {
-          kcal: consumed.kcal / targets.kcal,
-          protein: consumed.protein_g / targets.protein_g,
-          carbs: consumed.carbs_g / targets.carbs_g,
-          fat: consumed.fat_g / targets.fat_g,
-        },
-        isOver: consumed.kcal > targets.kcal,
-        entryCount: entries.length,
-      },
+      summary,
       entries: entries.map((e) => ({
         id: e.client_id, title: e.food_name,
         subtitle: `${Math.round(e.grams)} g · ${Math.round(e.kcal)} kcal`,
@@ -151,7 +139,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
       streak: entries.length > 0 ? { days: 1, isLongest: false } : undefined,
       water: entries.length > 0 ? { liters: 0, goalLiters: plan.water_l } : undefined,
       coach: entries.length > 0
-        ? `Nice — ${Math.max(0, Math.round(targets.protein_g - consumed.protein_g))} g protein to go.`
+        ? `Nice — ${Math.max(0, Math.round(summary.remaining.protein_g))} g protein to go.`
         : undefined,
     };
   }, [stage, plan, tick]);
@@ -237,27 +225,29 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     } finally { setDeleting(false); }
   };
 
-  if (stage === 'boot') return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
+  if (stage === 'boot') return <BootSplash theme={theme} wordmark={onb.appName} />;
 
   if (stage === 'welcome' || stage === 'goal' || stage === 'about' || stage === 'plan') {
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
-        {stage === 'welcome' && (
-          <WelcomeScreen theme={theme}
-            onApple={comingSoon} onGoogle={comingSoon}
-            onEmail={() => setAuthOpen(true)} onRestore={comingSoon} />
-        )}
-        {stage === 'goal' && (
-          <GoalScreen theme={theme} value={goal} onSelect={setGoal} onContinue={() => setStage('about')} />
-        )}
-        {stage === 'about' && (
-          <AboutYouScreen theme={theme} value={about} onChange={setAbout}
-            valid={aboutProfile() !== null} onContinue={() => setStage('plan')} />
-        )}
-        {stage === 'plan' && aboutProfile() && (
-          <PlanScreen theme={theme} profile={aboutProfile()!}
-            reminder={reminder} onReminder={setReminder} onStart={finishOnboarding} />
-        )}
+        <FadeSlideIn key={stage}>
+          {stage === 'welcome' && (
+            <WelcomeScreen theme={theme}
+              onApple={comingSoon} onGoogle={comingSoon}
+              onEmail={() => setAuthOpen(true)} onRestore={comingSoon} />
+          )}
+          {stage === 'goal' && (
+            <GoalScreen theme={theme} value={goal} onSelect={setGoal} onContinue={() => setStage('about')} />
+          )}
+          {stage === 'about' && (
+            <AboutYouScreen theme={theme} value={about} onChange={setAbout}
+              valid={aboutProfile() !== null} onContinue={() => setStage('plan')} />
+          )}
+          {stage === 'plan' && aboutProfile() && (
+            <PlanScreen theme={theme} profile={aboutProfile()!}
+              reminder={reminder} onReminder={setReminder} onStart={finishOnboarding} />
+          )}
+        </FadeSlideIn>
         <Modal visible={authOpen} transparent animationType="slide" onRequestClose={() => setAuthOpen(false)}>
           <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setAuthOpen(false)} />
           <EmailAuthSheet theme={theme} busy={authBusy} error={authError} onSubmit={emailAuth} />
@@ -272,6 +262,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
       .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <FadeSlideIn key="profile">
         <ProfileScreen theme={theme}
           vm={{
             name: auth.session?.email?.split('@')[0] ?? 'You',
@@ -287,6 +278,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
           onDeleteAccount={() => setConfirmDelete(true)}
           onTab={(i) => { if (i === 0) setStage('today'); }}
           onLog={() => { setStage('today'); setSheet('log'); }} />
+        </FadeSlideIn>
         <Modal visible={confirmDelete} transparent animationType="slide" onRequestClose={() => setConfirmDelete(false)}>
           <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={() => setConfirmDelete(false)} />
           <Sheet theme={theme}>
@@ -308,11 +300,13 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <FadeSlideIn key="today">
       <TodayScreen theme={theme} vm={vm}
         onLog={() => setSheet('log')}
         onScan={soon('Scan')} onDescribe={soon('Describe')}
         onTab={(i) => { if (i === 3) setStage('profile'); }}
         onProfile={() => setStage('profile')} />
+      </FadeSlideIn>
       <Modal visible={sheet !== 'none'} transparent animationType="slide" onRequestClose={() => setSheet('none')}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setSheet('none')} />
         <View>

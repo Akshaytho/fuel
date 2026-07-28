@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.0",
   "scripts": {
-    "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit",
+    "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit && tsc --noEmit -p apps/mobile",
     "test": "pnpm -r --filter './packages/*' test",
     "verify": "pnpm typecheck && pnpm test"
   },

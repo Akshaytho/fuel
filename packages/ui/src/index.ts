@@ -9,3 +9,4 @@ export { StatCard, CoachStrip, ActionRow } from './cards';
 export { ScanIcon, ChatIcon, FlameIcon } from './icons';
 export { Sheet, SearchField, IconTile, FoodRow, SelectChip, MacroPreviewTile, CTAButton } from './sheets';
 export { StepBar, Segmented, OptionCard, RadioRow, FieldRow, ToggleRow, BrandMark } from './onboarding';
+export { useTween, FadeSlideIn, BootSplash, pressedStyle } from './motion';

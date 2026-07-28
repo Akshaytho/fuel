@@ -29,7 +29,7 @@ export interface Profile {
 }
 
 export interface Targets extends Macros {
-  /** true when the safety floor (1200 kcal) overrode the computed deficit */
+  /** true when the sex-specific floor (1200 F / 1500 M) overrode the deficit */
   clamped: boolean;
 }
 

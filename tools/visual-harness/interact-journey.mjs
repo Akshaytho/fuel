@@ -68,11 +68,15 @@ const step = async (name, fn) => {
 const EMAIL = `journey-${Date.now()}@fuel.test`;
 const PW = 'e2e-Fuel-2026!x';
 
-await page.waitForTimeout(800);
-await page.screenshot({ path: 'out/j1-welcome.png' });
+await step('app open plays the brand splash (rule 0b), THEN welcome fades in', async () => {
+  await page.getByTestId('boot-splash').waitFor({ timeout: 3000 });
+  await page.waitForTimeout(750);            // let the spring + wordmark land
+  await page.screenshot({ path: 'out/j0-boot.png' });
+});
 
 await step('Welcome renders: brand, tagline, three promises, auth options', async () => {
-  await page.getByText('The honest way to eat better').waitFor({ timeout: 4000 });
+  await page.getByText('The honest way to eat better').waitFor({ timeout: 6000 });
+  await page.screenshot({ path: 'out/j1-welcome.png' });
   await page.getByText('Scan, describe, or snap a label — done').waitFor();
   await page.getByText('Sign in with Apple').waitFor();
 });
@@ -106,9 +110,11 @@ await step('about-you: continue disabled until valid, then advances', async () =
 });
 await page.screenshot({ path: 'out/j3-plan.png' });
 await step('plan shows EXACT domain-computed targets (f/28/165/68.2/light/lose)', async () => {
-  // BMR=1412.25 ×1.375=1941.84 ×0.8=1553.475 → 1,553 kcal; protein 1.8×68.2=122.8→123g; water 2.5L
+  // Research 0001: BMR=1412.25 ×1.375=1941.84 −20%=1553.475 → 1,553 kcal;
+  // protein: lose 2.0 g/kg of ref weight, capped at 35% kcal → 135.9 → 136g; water 2.5L
   await page.getByText('1,553').waitFor();
-  await page.getByText('123g').waitFor();
+  // protein AND carbs both land on 136g for this profile (35% cap + 35% remainder)
+  await page.getByText('136g').first().waitFor();
   await page.getByText('2.5L').waitFor();
 });
 await step('reminder toggle flips', async () => {
@@ -132,14 +138,28 @@ await step('log real food: live search → portion → rings move', async () => 
   await page.getByTestId('log-cta').click();
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 5000 });
 });
-await step('RELOAD = relaunch: straight to Today, data intact (no onboarding)', async () => {
+// page.reload() below is the ONE allowed non-tap action (CLAUDE.md rule 0a):
+// it simulates killing and relaunching the app, which has no tappable gesture.
+await step('RELAUNCH: splash again, then straight to Today, data intact', async () => {
   await page.reload();
-  await page.waitForTimeout(1200);
-  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 5000 });
+  await page.getByTestId('boot-splash').waitFor({ timeout: 3000 });
+  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 9000 });
   await page.getByText('1,553').first().waitFor();
   if (await page.getByText('What are we working toward?').isVisible().catch(() => false)) {
     throw new Error('onboarding shown again');
   }
+});
+await step('rings SWEEP to value on relaunch (rule 0b), not snap', async () => {
+  // Sample the outer ring arc mid-sweep and after it settles; a static
+  // screen renders identical dasharrays and fails this step.
+  const arcs = () => page.evaluate(() =>
+    Array.from(document.querySelectorAll('circle[stroke-dasharray]'))
+      .map((c) => c.getAttribute('stroke-dasharray')).join('|'));
+  const mid = await arcs();
+  await page.waitForTimeout(1400);
+  const settled = await arcs();
+  if (mid === settled) throw new Error('ring arcs did not animate: ' + mid.slice(0, 80));
+  if (!settled) throw new Error('no ring arcs rendered');
 });
 await page.screenshot({ path: 'out/j5-relaunch.png' });
 

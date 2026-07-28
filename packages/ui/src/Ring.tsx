@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { Theme, type as t } from '@fuel/tokens';
 
 import { ringArc } from './ringMath';
+import { useTween } from './motion';
 export { ringArc };
 
 export interface RingProps {
@@ -22,7 +23,10 @@ export function Ring({
 }: RingProps) {
   const r = (size - strokeWidth) / 2;
   const c = 2 * Math.PI * r;
-  const { dash, over } = ringArc(progress, c);
+  // Rule 0b: the arc SWEEPS to its value; color reflects the true target.
+  const animated = useTween(progress);
+  const { dash } = ringArc(animated, c);
+  const { over } = ringArc(progress, c);
   const color = over ? theme.danger : theme.ringCalories;
 
   return (
