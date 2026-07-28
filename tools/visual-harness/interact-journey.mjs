@@ -116,6 +116,45 @@ await step('RELOAD = relaunch: straight to Today, data intact (no onboarding)', 
   }
 });
 await page.screenshot({ path: 'out/j5-relaunch.png' });
+
+/* ---------- spec 0008: profile, export, DELETE (the full GDPR arc) ---------- */
+await step('You tab opens Profile: goal card with real targets', async () => {
+  await page.getByText('You', { exact: true }).click();
+  await page.getByText('CURRENT GOAL').waitFor({ timeout: 4000 });
+  await page.getByText(/1,553 kcal/).waitFor();
+  await page.getByText(/Fueling since/).waitFor();
+  await page.getByText('your data stays yours').waitFor();
+});
+await page.screenshot({ path: 'out/j6-profile.png' });
+await step('coming-soon rows are honest', async () => {
+  await page.getByTestId('row-reminders').click();
+  const a = await page.getByTestId('alert').textContent();
+  if (!a.includes('Reminders')) throw new Error(a);
+});
+await step('Export: CSV has profile lines + logged entry', async () => {
+  await page.getByTestId('row-export').click();
+  await page.waitForTimeout(300);
+  const csv = await page.evaluate(() => window.__export ?? '');
+  if (!csv.includes('# profile:')) throw new Error('no profile lines');
+  if (!csv.includes('day,logged_at,food_name')) throw new Error('no header');
+  if (csv.trim().split('\n').length < 5) throw new Error('no entry rows: ' + csv.split('\n').length);
+  const a = await page.getByTestId('alert').textContent();
+  if (!a.includes('Export ready')) throw new Error(a);
+});
+await step('Delete asks confirmation; cancel keeps everything', async () => {
+  await page.getByTestId('row-delete').click();
+  await page.getByText('Delete everything?').waitFor();
+  await page.getByTestId('cancel-delete').click();
+  await page.getByText('CURRENT GOAL').waitFor();
+});
+await step('Delete confirmed: server + local erased, back to Welcome', async () => {
+  await page.getByTestId('row-delete').click();
+  await page.getByTestId('confirm-delete').click();
+  await page.getByText('The honest way to eat better').waitFor({ timeout: 20000 });
+  const left = await page.evaluate(() => (window.localStorage.getItem('fuel.profile.v1') ?? '') + '|' + (window.localStorage.getItem('entries') ?? ''));
+  if (left.replace(/[|\[\]]/g, '').length > 0) throw new Error('local remnants: ' + left.slice(0, 60));
+});
+await page.screenshot({ path: 'out/j7-deleted.png' });
 console.log('JOURNEY_EMAIL=' + EMAIL);
 await browser.close();
 console.log(process.exitCode ? 'JOURNEY HAD FAILURES' : 'JOURNEY FULLY PASSED');

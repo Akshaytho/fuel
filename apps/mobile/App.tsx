@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, Alert, useColorScheme } from 'react-native';
+import { SafeAreaView, Alert, Share, useColorScheme } from 'react-native';
 import Storage from 'expo-sqlite/kv-store';
 import { light, dark } from '@fuel/tokens';
 import { AppRoot } from './screens/AppRoot';
@@ -21,6 +21,7 @@ export default function App() {
         supabaseUrl={process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''}
         supabaseAnonKey={process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''}
         alert={(t, m) => Alert.alert(t, m)}
+        share={(name, text) => { void Share.share({ title: name, message: text }); }}
       />
     </SafeAreaView>
   );

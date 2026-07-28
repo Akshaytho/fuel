@@ -104,4 +104,17 @@ describe('LogStore (spec 0006)', () => {
     for (let i = 0; i < 50; i++) ids.add((await s.add(entry())).client_id);
     expect(ids.size).toBe(50);
   });
+
+  it('allEntries returns everything; clear() empties store and persists', async () => {
+    const adapter = new MemoryAdapter();
+    const s = new LogStore(adapter);
+    await s.init();
+    await s.add(entry());
+    await s.add(entry({ day: '2026-07-28' }));
+    expect(s.allEntries()).toHaveLength(2);
+    await s.clear();
+    expect(s.allEntries()).toHaveLength(0);
+    const s2 = new LogStore(adapter); await s2.init();
+    expect(s2.allEntries()).toHaveLength(0);
+  });
 });

@@ -12,6 +12,11 @@ import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
 import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, goalToDomain, type AboutYou } from './onboarding';
+import { ProfileScreen } from './ProfileScreen';
+import { buildExportCSV } from '../data/exportData';
+import { pf } from './profileStrings';
+import { Sheet, CTAButton } from '@fuel/ui';
+import { Text } from 'react-native';
 import { onb } from './onbStrings';
 
 /** The whole user journey (spec 0007). Injected deps so the SAME component
@@ -23,14 +28,16 @@ export interface AppRootProps {
   supabaseUrl: string;
   supabaseAnonKey: string;
   alert: (title: string, message: string) => void;
+  /** deliver export text to the user (device: share sheet; harness: capture) */
+  share: (filename: string, text: string) => void;
 }
 
-interface StoredPlan { profile: Profile; targets: Targets; water_l: number; reminder: boolean }
+interface StoredPlan { profile: Profile; targets: Targets; water_l: number; reminder: boolean; createdAt?: string }
 const PROFILE_KEY = 'fuel.profile.v1';
 
-type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today';
+type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'profile';
 
-export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey, alert }: AppRootProps) {
+export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
   const store = useMemo(
     () => new LogStore(entryAdapter, createRemote(supabaseUrl, supabaseAnonKey, () => auth.session)),
@@ -53,6 +60,8 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
 
   // log-flow state
   const [sheet, setSheet] = useState<'none' | 'log' | 'search' | 'portion'>('none');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [picked, setPicked] = useState<FoodHit | null>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodHit[]>([]);
@@ -63,7 +72,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
       await store.init();
       await auth.init();                       // restore session if any
       const raw = await kv.getItem(PROFILE_KEY);
-      if (raw) {
+      if (raw && raw.length > 2) {
         setPlan(JSON.parse(raw) as StoredPlan);
         setStage('today');
         void store.sync().then(() => bump());  // background push of anything pending
@@ -92,7 +101,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
   const finishOnboarding = async (targets: Targets, water_l: number) => {
     const profile = aboutProfile();
     if (!profile) return;
-    const stored: StoredPlan = { profile, targets, water_l, reminder };
+    const stored: StoredPlan = { profile, targets, water_l, reminder, createdAt: plan?.createdAt ?? new Date().toISOString() };
     await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
     setPlan(stored);
     setStage('today');
@@ -176,6 +185,41 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
   const comingSoon = () => alert(onb.comingSoonTitle, onb.comingSoonBody); // TODO(B-09): needs Harish's Apple/Google dev accounts
   const soon = (what: string) => () => alert(what, 'Arrives in Phase 2.'); // TODO(stub): P2
 
+  const doExport = () => {
+    if (!plan) return;
+    const entries = store.allEntries();
+    const csv = buildExportCSV(plan.profile, plan.targets, entries);
+    share(`fuel-export-${todayISO()}.csv`, csv);
+    alert(pf.exportedTitle, pf.exportedBody(entries.length));
+  };
+
+  const doSignOut = async () => {
+    await auth.signOut();
+    setStage('welcome');
+  };
+
+  const doDelete = async () => {
+    setDeleting(true);
+    try {
+      const s = auth.session;
+      if (s) {
+        const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${s.access_token}`, apikey: supabaseAnonKey },
+        });
+        if (!res.ok) throw new Error(`server delete failed: ${res.status}`);
+      }
+      await store.clear();
+      await kv.setItem(PROFILE_KEY, '');
+      await auth.signOut();
+      setPlan(null);
+      setConfirmDelete(false);
+      setStage('welcome');
+    } catch (e) {
+      alert('Delete failed', e instanceof Error ? e.message : 'Try again.');
+    } finally { setDeleting(false); }
+  };
+
   if (stage === 'boot') return <View style={{ flex: 1, backgroundColor: theme.bg }} />;
 
   if (stage === 'welcome' || stage === 'goal' || stage === 'about' || stage === 'plan') {
@@ -205,12 +249,53 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     );
   }
 
+  if (stage === 'profile' && plan) {
+    const days = new Set(store.allEntries().map((e) => e.day)).size;
+    const since = new Date(plan.createdAt ?? Date.now())
+      .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <ProfileScreen theme={theme}
+          vm={{
+            name: auth.session?.email?.split('@')[0] ?? 'You',
+            sinceLabel: `Fueling since ${since} · ${days} day${days === 1 ? '' : 's'} logged`,
+            goal: plan.profile.goal, targets: plan.targets,
+            reminderLabel: plan.reminder ? '9:00 PM' : 'Off',
+            unitsLabel: 'kg, ml',
+          }}
+          onChangeGoal={() => setStage('goal')}
+          onReminders={soon('Reminders')} onUnits={soon('Units')} onHealth={soon('Apple Health')}
+          onExport={doExport} onHelp={soon('Help & FAQ')}
+          onSignOut={doSignOut}
+          onDeleteAccount={() => setConfirmDelete(true)}
+          onTab={(i) => { if (i === 0) setStage('today'); }}
+          onLog={() => { setStage('today'); setSheet('log'); }} />
+        <Modal visible={confirmDelete} transparent animationType="slide" onRequestClose={() => setConfirmDelete(false)}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} onPress={() => setConfirmDelete(false)} />
+          <Sheet theme={theme}>
+            <View style={{ gap: 12 }}>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: theme.label }}>{pf.deleteConfirmTitle}</Text>
+              <Text style={{ fontSize: 15, color: theme.secondaryLabel }}>{pf.deleteConfirmBody}</Text>
+              <View style={{ backgroundColor: theme.danger, borderRadius: 16 }}>
+                <CTAButton theme={theme} testID="confirm-delete" label={deleting ? 'Deleting…' : pf.deleteConfirmCta} onPress={() => { if (!deleting) void doDelete(); }} />
+              </View>
+              <Pressable testID="cancel-delete" onPress={() => setConfirmDelete(false)} style={{ alignItems: 'center', padding: 8 }}>
+                <Text style={{ fontSize: 17, fontWeight: '600', color: theme.tint }}>{pf.cancel}</Text>
+              </Pressable>
+            </View>
+          </Sheet>
+        </Modal>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <TodayScreen theme={theme} vm={vm}
         onLog={() => setSheet('log')}
         onScan={soon('Scan')} onDescribe={soon('Describe')}
-        onTab={() => {}} onProfile={soon('Profile')} />
+        onTab={(i) => { if (i === 3) setStage('profile'); }}
+        onProfile={() => setStage('profile')} />
       <Modal visible={sheet !== 'none'} transparent animationType="slide" onRequestClose={() => setSheet('none')}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setSheet('none')} />
         <View>

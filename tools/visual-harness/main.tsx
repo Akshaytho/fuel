@@ -37,6 +37,7 @@ function App() {
           supabaseUrl={process.env.SUPA_URL ?? ''}
           supabaseAnonKey={process.env.SUPA_ANON ?? ''}
           alert={(t, m) => (window as unknown as { __setAlert: (s: string) => void }).__setAlert(`${t}: ${m}`.slice(0, 60))}
+          share={(name, text) => { (window as unknown as { __export?: string }).__export = text; }}
         />
       </View>
     </View>

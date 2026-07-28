@@ -58,6 +58,17 @@ export class LogStore {
     return entry;
   }
 
+  allEntries(): LocalEntry[] {
+    this.assertInit();
+    return [...this.entries];
+  }
+
+  async clear(): Promise<void> {
+    this.assertInit();
+    this.entries = [];
+    await this.adapter.save(this.entries);
+  }
+
   entriesForDay(day: string): LocalEntry[] {
     this.assertInit();
     return this.entries.filter((e) => e.day === day);
