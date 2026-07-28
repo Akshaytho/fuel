@@ -1,6 +1,18 @@
 import { DaySummary, LogEntryInput, Macros, Targets } from './types';
 import { consumedFromEntries, round1 } from './macros';
 
+/**
+ * The calendar day an entry belongs to, in the user's LOCAL zone (YYYY-MM-DD).
+ *
+ * Never derive this from `toISOString()`: that is UTC, so east of Greenwich the
+ * stored day disagrees with the date shown on screen — food logged at 01:00 IST
+ * files under yesterday and drops off Today when the UTC date rolls over.
+ */
+export function localDayISO(d: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** Ratio that tolerates a zero target (0 consumed / 0 target = 0, else ∞-safe 1+). */
 function ratio(consumed: number, target: number): number {
   if (target <= 0) return consumed > 0 ? 1 : 0;

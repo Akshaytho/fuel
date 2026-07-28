@@ -110,6 +110,13 @@ export class LogStore {
 function defaultId(): string {
   const c: Crypto | undefined = (globalThis as { crypto?: Crypto }).crypto;
   if (c?.randomUUID) return c.randomUUID();
-  // RN fallback until expo-crypto lands: time+random, collision-safe enough per user
-  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}-${Math.random().toString(16).slice(2, 10)}`;
+  // React Native/Hermes ships no Web Crypto (Expo 54 installs TextDecoder, URL
+  // and structuredClone, but not crypto), so on device this IS the only path.
+  // It must emit a real RFC 4122 v4: log_entries.client_id is a Postgres `uuid`
+  // column and rejects anything else with 22P02 — which sync() swallows, so a
+  // malformed id silently means "nothing ever reaches the server".
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Modal, Pressable } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
-  scalePer100g, summarizeDay, computeTargets, mealForHour,
+  scalePer100g, summarizeDay, computeTargets, mealForHour, localDayISO,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
 import { LogStore, type StorageAdapter } from '@fuel/store';
@@ -109,7 +109,9 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     if (s) upsertProfile(supabaseUrl, supabaseAnonKey, s, profile, targets).catch(() => {});
   };
 
-  const todayISO = () => new Date().toISOString().slice(0, 10);
+  // LOCAL calendar day — must match the date rendered in the header below.
+  // (Was toISOString(), i.e. UTC, which filed after-midnight logs under yesterday.)
+  const todayISO = () => localDayISO();
 
   const vm: TodayVM = useMemo(() => {
     if (stage !== 'today' || !plan) return { kind: 'loading' };
@@ -173,12 +175,27 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
   const emailAuth = async (email: string, password: string) => {
     setAuthBusy(true); setAuthError(undefined);
     try {
-      try { await auth.signIn(email, password); }
-      catch { await auth.signUp(email, password); }
+      await auth.signIn(email, password);
       setAuthOpen(false);
       setStage('goal');
-    } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Could not sign in');
+    } catch {
+      // Supabase returns one opaque error for BOTH "no such user" and "wrong
+      // password" (anti-enumeration), so a failed sign-in alone can't tell us
+      // which it was. Sign-up disambiguates: if it says the account exists,
+      // the account is real and the password was simply wrong — say that,
+      // instead of parroting "User already registered" (B-15).
+      try {
+        await auth.signUp(email, password);
+        setAuthOpen(false);
+        setStage('goal');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        setAuthError(
+          /already\s*(been\s*)?registered|already exists|user_already_exists/i.test(msg)
+            ? 'Wrong password for this email. Try again, or use a different email.'
+            : msg || 'Could not sign in',
+        );
+      }
     } finally { setAuthBusy(false); }
   };
 

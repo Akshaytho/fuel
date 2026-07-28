@@ -40,14 +40,17 @@ export function WelcomeScreen({ theme, onApple, onGoogle, onEmail, onRestore }: 
         <Pressable testID="auth-google" onPress={onGoogle} style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.separator, borderRadius: radius.card, alignItems: 'center', paddingVertical: space.s4 }}>
           <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.label }}>{onb.google}</Text>
         </Pressable>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
-          <Pressable testID="auth-email" onPress={onEmail}>
-            <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>
-              {onb.useEmail} <Text style={{ color: theme.tint, fontWeight: '600' }}>·</Text>
-            </Text>
+        {/* Until Apple/Google land (B-09) email is the ONLY working sign-in, so it
+            carries the tint and the weight. Previously the tint sat on the "·"
+            separator and on Restore-purchase (a stub), so every affordance that
+            looked tappable answered "Coming soon" and the live path looked dead. */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+          <Pressable testID="auth-email" onPress={onEmail} hitSlop={8}>
+            <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.tint }}>{onb.useEmail}</Text>
           </Pressable>
-          <Pressable onPress={onRestore}>
-            <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.tint }}>{onb.restore}</Text>
+          <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>·</Text>
+          <Pressable onPress={onRestore} hitSlop={8}>
+            <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{onb.restore}</Text>
           </Pressable>
         </View>
       </View>
