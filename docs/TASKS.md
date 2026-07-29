@@ -32,9 +32,13 @@ Add newly discovered work as new boxes — never do it silently.
 
 ## Backlog / discovered work
 
-- [ ] B-11 SDK 54 upgrade landed out-of-band (expo 53→54, RN 0.79→0.81.5, react 19.0→19.1,
-      expo-sqlite 15→16, rn-svg→15.12.1). Forced: Expo Go only ever supports the newest SDK.
-      Unplanned change to a "Phase 1 complete" tree — needs its own review/commit.
+- [x] B-11 DONE (session 4b) — reviewed and accepted. Versions consistent (expo ~54.0.36,
+      RN 0.81.5, react 19.1.0, expo-sqlite ~16.0.10, rn-svg 15.12.1 exact); @fuel/ui declares
+      react/react-native/react-native-svg as PEER deps (no second physical copy), and metro's
+      resolveRequest forces all three to resolve from the app — a guard, not just a pin.
+      Both bundles export clean under the new SDK: iOS 740 modules / 2.15 MB hbc, Android
+      2.16 MB hbc. Added an explicit `platforms: ["ios","android"]` to app.json — without it
+      an export run from the repo root silently defaulted to web-only.
 - [x] B-12 DONE (session 4): migration 0004 adds log_entries.meal; LocalEntry carries it;
       logIt persists it; the entry row now reads "Dinner · 100 g · 51 kcal". Journey taps the
       meal chip and asserts the choice survives the log.

@@ -15,6 +15,10 @@
     },
     "plugins": [
       "expo-sqlite"
+    ],
+    "platforms": [
+      "ios",
+      "android"
     ]
   }
 }
