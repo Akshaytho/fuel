@@ -26,10 +26,14 @@ export const onb = {
   female: 'Female', male: 'Male', other: 'Other',
   age: 'Age', height: 'Height', weight: 'Current weight',
   activityCaps: 'HOW ACTIVE ARE YOU, HONESTLY?',
-  actSitting: 'Mostly sitting', actSittingSub: 'Desk job, little exercise',
-  actLight: 'Lightly active', actLightSub: 'Walks + 1–3 workouts a week',
-  actVery: 'Very active', actVerySub: 'Training 4+ days or physical job',
-  aboutFootnote: "Don't stress the guess — after 2 weeks of logs we use your real burn, not this estimate.",
+  // B-25 / research 0001 §2: multipliers are standard, but people reliably
+  // pick one level too high — which is a ~300 kcal/day error. Concrete,
+  // countable anchors (steps + sessions) instead of adjectives, and an
+  // explicit nudge downward when they're torn.
+  actSitting: 'Mostly sitting', actSittingSub: 'Desk job · under 5,000 steps · no regular training',
+  actLight: 'Lightly active', actLightSub: 'On your feet some days · 5,000–10,000 steps · 1–3 workouts a week',
+  actVery: 'Very active', actVerySub: 'Physical job, or hard training 4+ days · 10,000+ steps',
+  aboutFootnote: "Torn between two? Pick the lower one — almost everyone overestimates, and a too-high number is the one that quietly stalls progress. After 2 weeks of logs we use your real burn, not this estimate.",
   planTitle: 'Your starting plan',
   planSub: (goal: string) =>
     goal === 'lose' ? 'Built for losing ~0.4 kg a week without losing muscle.'

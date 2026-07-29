@@ -84,6 +84,9 @@ export interface SearchScreenProps {
   query: string;
   results: SearchResultVM[];
   error?: boolean;
+  /** true while a debounced query is in flight — the user must never wonder
+      whether we heard them (B-20). */
+  busy?: boolean;
   onQuery: (q: string) => void;
   onCancel: () => void;
   onAdd: (id: string) => void;
@@ -112,6 +115,9 @@ export function SearchScreen(p: SearchScreenProps) {
       <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{s.searchCaption}</Text>
       {p.error && (
         <Text style={{ fontSize: t.subhead.size, color: theme.danger }}>{s.searchError}</Text>
+      )}
+      {p.busy === true && !p.error && (
+        <Text testID="search-busy" style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{s.searching}</Text>
       )}
       <ScrollView contentContainerStyle={{ gap: space.s3 }}>
         {p.results.length > 0 && (

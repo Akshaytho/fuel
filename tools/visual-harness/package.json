@@ -13,5 +13,10 @@
     "playwright": "^1.49.0",
     "@fuel/domain": "workspace:*",
     "@fuel/store": "workspace:*"
+  },
+  "scripts": {
+    "journey": "node interact-journey.mjs",
+    "device-shape": "node interact-device-shape.mjs",
+    "e2e": "node interact-journey.mjs && node interact-device-shape.mjs"
   }
 }

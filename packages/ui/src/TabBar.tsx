@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
+import { pressedStyle } from './motion';
 
 /** Production bottom bar: Today · Trends · [big +] · Report · You. */
 export interface TabBarProps {
@@ -9,6 +10,11 @@ export interface TabBarProps {
   activeIndex: number;          // 0..3 across the four tabs
   onTab: (index: number) => void;
   onLog: () => void;
+  /** Tabs whose screen doesn't exist yet. They stay tappable (tapping
+      explains why) but must NOT look like live destinations — the Welcome
+      screen taught us that a stub styled like the real thing reads as broken
+      (P0-C). Rendered dimmed with a "soon" marker. */
+  soonIndices?: readonly number[];
 }
 
 function Icon({ name, color }: { name: string; color: string }) {
@@ -44,7 +50,7 @@ function Icon({ name, color }: { name: string; color: string }) {
   }
 }
 
-export function TabBar({ theme, activeIndex, onTab, onLog }: TabBarProps) {
+export function TabBar({ theme, activeIndex, onTab, onLog, soonIndices = [] }: TabBarProps) {
   const tabs = [
     { name: 'today', label: 'Today' },
     { name: 'trends', label: 'Trends' },
@@ -53,10 +59,14 @@ export function TabBar({ theme, activeIndex, onTab, onLog }: TabBarProps) {
   ];
   const item = (i: number) => {
     const active = activeIndex === i;
+    const soon = soonIndices.includes(i);
     const color = active ? theme.tint : theme.secondaryLabel;
     return (
-      <Pressable key={tabs[i]!.name} onPress={() => onTab(i)}
-        style={{ flex: 1, alignItems: 'center', gap: 3, paddingTop: space.s2 }}>
+      <Pressable key={tabs[i]!.name} testID={`tab-${tabs[i]!.name}`} onPress={() => onTab(i)}
+        style={({ pressed }) => [{
+          flex: 1, alignItems: 'center', gap: 3, paddingTop: space.s2,
+          opacity: soon ? 0.4 : 1,
+        }, pressedStyle(pressed)]}>
         <Icon name={tabs[i]!.name} color={color} />
         <Text style={{ fontSize: t.caption.size, fontWeight: active ? '600' : '500', color }}>
           {tabs[i]!.label}

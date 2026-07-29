@@ -122,7 +122,7 @@ export function ProfileScreen(p: ProfileScreenProps) {
         <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel, textAlign: 'center' }}>{pf.footer}</Text>
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-        <TabBar theme={theme} activeIndex={3} onTab={p.onTab} onLog={p.onLog} />
+        <TabBar theme={theme} activeIndex={3} onTab={p.onTab} onLog={p.onLog} soonIndices={[1, 2]} />
       </View>
     </View>
   );

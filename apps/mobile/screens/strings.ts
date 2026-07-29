@@ -34,4 +34,7 @@ export const str = {
   waterAdd: '+250',
   waterUndo: 'Undo',
   todaysMeals: "TODAY'S MEALS",
+  trends: 'Trends',
+  report: 'Report',
+  tabSoon: 'Arrives in Phase 2, once you have a few weeks of logs to chart.',
 } as const;

@@ -5,7 +5,8 @@
   "scripts": {
     "typecheck": "pnpm -r --filter './packages/*' exec tsc --noEmit && tsc --noEmit -p apps/mobile",
     "test": "pnpm -r --filter './packages/*' test",
-    "verify": "pnpm typecheck && pnpm test"
+    "verify": "pnpm typecheck && pnpm test",
+    "e2e": "pnpm -C tools/visual-harness e2e"
   },
   "engines": {
     "node": ">=22"

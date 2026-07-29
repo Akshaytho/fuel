@@ -38,10 +38,13 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] B-12 DONE (session 4): migration 0004 adds log_entries.meal; LocalEntry carries it;
       logIt persists it; the entry row now reads "Dinner · 100 g · 51 kcal". Journey taps the
       meal chip and asserts the choice survives the log.
-- [ ] B-13 Trends (tab 1) and Report (tab 2) are dead — no handler, no feedback. Wire or
-      mark honestly per the no-dead-controls rule.
-- [ ] B-14 Access token never refreshed after boot (~1h expiry) → later pushes 401 into the
-      silent `catch` in sync(). Needs refresh-on-401 + retry.
+- [x] B-13 DONE (session 4): honest stub treatment — Trends/Report render dimmed (0.4) so
+      they never read as live destinations (the P0-C lesson), and tapping answers "Arrives in
+      Phase 2, once you have a few weeks of logs to chart." Real screens are Phase 2 scope.
+- [x] B-14 DONE (session 4): auth.refresh() (single-flight, so a burst of 401s can't race
+      and invalidate each other's rotated token) + authedFetch() which retries once on
+      401/403. ALL authenticated calls now go through it: log push, water push, profile
+      upsert, delete-account.
 - [x] B-15 FIXED (session 2): sign-in→sign-up fallback kept, but a sign-up rejection of
       "already registered" now surfaces as "Wrong password for this email" (the only way that
       branch is reached). Regex verified against live GoTrue 422 user_already_exists.
@@ -56,18 +59,29 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] B-19 DONE (session 4): four distinct states (synced / pending / offline / failed).
       "No connection" is claimed only when the platform says navigator.onLine === false;
       a failed push now surfaces "Sync failed — tap to retry" as a real, tappable retry.
-- [ ] B-20 Search fires one request per keystroke (no debounce); results rank alphabetically,
-      so "banana" surfaces "Babyfood, apple-banana juice" before "Bananas, raw".
+- [x] B-20 DONE (session 4): 250 ms debounce + stale-response guard + a "Searching…"
+      indicator. Ranking moved INTO Postgres (migration 0005: pg_trgm index + search_foods()
+      RPC ranking exact > prefix > word-start > trigram similarity > shorter name). Client-side
+      re-ranking was rejected as unscalable — at a million foods the right rows aren't in the
+      alphabetical first page. Live-verified: "banana" → "Bananas, raw" first.
 - [x] B-21 AppRoot recomputes remaining/progress inline instead of calling summarizeDay(),
       bypassing day.ts's zero-guard + round1. The tested domain path is not the shipped path.
       DONE session 4: domain gained summarizeConsumed(); AppRoot's vm now calls it directly.
-- [ ] B-25 About-you activity levels need concrete anchors in UI copy ("desk job, <5k steps")
-      and a LOW-biased default — users overstate activity (research 0001 §2). UI-copy task.
-- [ ] B-22 CSV export: food names beginning = + - @ execute as formulas in Excel/Sheets.
-      Low risk while names come from USDA; real once users name their own foods.
-- [ ] B-23 Verification harness runs react-native-web in Chromium, which HAS crypto.randomUUID
-      and a UTC-ish CI clock — it structurally could not catch P0-A or P0-B. Harness must run
-      at least one device-shaped check (or CI must pin a non-UTC TZ + assert no Web Crypto).
+- [x] B-25 DONE (session 4): countable anchors (steps + sessions) instead of adjectives,
+      plus an explicit "torn between two? pick the lower one" nudge explaining that a too-high
+      number is what quietly stalls progress. Also fixed a dishonest search caption that
+      claimed results were "ranked by what you actually eat" (no personalization exists).
+- [x] B-22 DONE (session 4): OWASP mitigation — any field starting = + - @ tab or CR is
+      prefixed with an apostrophe so the cell stays text. Meal column added to the export.
+- [x] B-23 DONE (session 4): tools/visual-harness/interact-device-shape.mjs — reshapes the
+      browser to the DEVICE shape before boot (Web Crypto deleted = Hermes; Asia/Kolkata at
+      00:30 local = the previous UTC day) and walks the real app by taps. Asserts: fallback id
+      is a real RFC 4122 v4, Postgres ACCEPTS it (sync truly completes), entries+water file
+      under the local day, and — the step that reproduces the actual user-visible failure —
+      the log SURVIVES the UTC rollover (clock advanced past midnight UTC, then relaunch).
+      NEGATIVE-CONTROLLED: both P0s were reintroduced and every relevant step failed; the
+      first draft of the "still visible" assertion passed under the bug and was replaced.
+      Wired as `pnpm e2e` (journey + device-shape).
 - [x] B-24 DONE (session 3, cloud): delete-account v2 redeployed via Management API with the
       CORS-fixed source; live-verified — OPTIONS preflight 204 with Access-Control-Allow-*
       headers, unauthenticated POST still 401. Laptop harness can now drop the functions/v1
@@ -110,3 +124,4 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-07-28 · session 2b (Harish's Mac) · SDK-54 aftermath fixed live during phone attempts: duplicate React (ui pinned 19.0.0 vs app 19.1.0 → "Invalid hook call" on device) and duplicate react-native-svg (caret drift 15.15.5 vs 15.12.1 → "two views named RNSVGCircle"); exact pins + metro singleton resolveRequest for react/react-native/react-native-svg (guard, not just pins). B-15 fixed + verified vs live GoTrue. Welcome auth-link inversion fixed (P0-C). Harness PORTED to laptop (was cloud-only: hardcoded /home/claude path, /opt/pw-browsers, curl bridge) — now HEADED=1 runs the real AppRoot in visible Chrome, phone-frame, human-paced typing. Full 15-step lifecycle run headed on Mac: found delete-account edge fn lacks CORS (browser preflight dies; sandbox bridge had masked it) → source fixed, B-24 redeploy pending, harness bridges only functions/v1 meanwhile. Re-run: 15/15 FULLY PASSED (screenshots tools/visual-harness/out/j1..j7). Both journey accounts verified erased server-side (sign-in 400). Phone gate (P0-08) STILL OPEN — Expo Go run on the physical device remains the exit condition.
 - 2026-07-28 · session 3 (cloud) · Pulled session-2/2b work from Harish's Mac; understood all findings (3 P0s incl. Hermes-no-WebCrypto sync-killer + UTC day bucket + Welcome tint inversion; SDK54 aftermath; harness ported/headed). Verified 66 tests green here post-SDK54. Closed B-24 (edge fn v2 live w/ CORS, preflight 204 verified). Next: audit fixes B-12..B-23 in order.
 - 2026-07-28 · session 4 (cloud) · Harish's three demands actioned. (1) DEEP RESEARCH on target math → docs/research/0001-target-math.md (every constant now cites evidence): Mifflin-St Jeor + standard multipliers KEPT (AND-recommended); FIXED: sex-specific floors 1200F/1500M (was 1200 both), deficit capped at 1000 kcal/day + surplus at 500 (percentages must not scale infinitely), protein now goal-based (lose 2.0 / maintain 1.6 / gain 1.8 g/kg) of ADJUSTED reference weight above BMI 25 (150kg user: 196.5g, was an absurd 270g) with 35% AMDR cap → macros now always sum to the kcal target (new invariant tests; 54 domain tests green). Water clamped [1.5, 4.0]L. Journey profile's plan changed 123g→136g protein. (2) MOTION (new rule 0b): BootSplash brand moment on app open (spring mark + wordmark, min 1400ms hold), FadeSlideIn stage transitions, TripleRing/Ring arcs SWEEP to value (RAF tween — reliable on Hermes AND web), CTA press feedback. Journey asserts splash on open AND on relaunch, and proves arcs animate (two-sample dasharray diff). (3) HUMAN-TAP testing law recorded as rule 0a; journey navigates by taps/typing only — page.reload() annotated as the one allowed relaunch simulation. B-21 CLOSED (summarizeConsumed is the shipped path). BONUS P0-class find: pnpm typecheck NEVER covered apps/mobile — a ReferenceError (consumed) shipped past verify and only the harness caught it; app typecheck added to the verify gate (6 latent type errors fixed). 17/17 journey steps green headless; screenshots j0-boot..j7.
+- 2026-07-29 · session 4b (cloud) · Audit backlog cleared: B-12/13/14/16/17/18/19/20/22/23/25 all closed (B-11/B-15/B-21/B-24 were already done). Two migrations applied live (0004 water_entries + log_entries.meal, 0005 pg_trgm + search_foods RPC), both verified against the real DB. Journey grew 15 → 21 tap-only steps; new device-shape harness (8 steps) reproduces the Hermes/no-WebCrypto and IST-midnight shapes and was NEGATIVE-CONTROLLED by reintroducing both P0s — which also caught that my first "entry still visible" assertion passed under the bug (a single-instant check can't see it; the entry vanishes only when UTC rolls over hours later, so the step now advances the clock and relaunches). Journey also caught a live copy bug: day one read "1 days · your longest". `pnpm e2e` now runs both harnesses. Phase gate P0-08 (Harish's on-phone Expo Go run) remains the one open exit condition.

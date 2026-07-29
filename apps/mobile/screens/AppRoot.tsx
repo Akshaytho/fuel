@@ -8,7 +8,7 @@ import {
 } from '@fuel/domain';
 import { LogStore, WaterStore, GLASS_ML, type StorageAdapter, type WaterStorageAdapter } from '@fuel/store';
 import { createAuth, type KV, type Auth } from '../data/auth';
-import { createRemote, createWaterRemote, upsertProfile } from '../data/remote';
+import { createRemote, createWaterRemote, upsertProfile, deleteAccount } from '../data/remote';
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
@@ -49,11 +49,11 @@ type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'profile
 export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
   const store = useMemo(
-    () => new LogStore(entryAdapter, createRemote(supabaseUrl, supabaseAnonKey, () => auth.session)),
+    () => new LogStore(entryAdapter, createRemote(supabaseUrl, supabaseAnonKey, auth)),
     [],
   );
   const water = useMemo(
-    () => new WaterStore(waterAdapter, createWaterRemote(supabaseUrl, supabaseAnonKey, () => auth.session)),
+    () => new WaterStore(waterAdapter, createWaterRemote(supabaseUrl, supabaseAnonKey, auth)),
     [],
   );
   const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey), []);
@@ -79,6 +79,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodHit[]>([]);
   const [searchError, setSearchError] = useState(false);
+  const [searching, setSearching] = useState(false);
   // B-19: a failed push used to vanish into `catch {}` and show the same
   // "Offline" pill as a queued one. Track the real outcome.
   const [syncFailed, setSyncFailed] = useState(false);
@@ -111,13 +112,19 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
     })();
   }, []);
 
+  // B-20: debounced — typing "banana" used to fire SIX queries, each racing
+  // the last. One query 250 ms after the user stops, and a stale response can
+  // never overwrite a newer one.
   useEffect(() => {
     let alive = true;
-    if (query.trim().length < 2) { setResults([]); return; }
-    repo.search(query)
-      .then((r) => { if (alive) { setResults(r); setSearchError(false); } })
-      .catch(() => { if (alive) setSearchError(true); });
-    return () => { alive = false; };
+    if (query.trim().length < 2) { setResults([]); setSearching(false); return; }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      repo.search(query)
+        .then((r) => { if (alive) { setResults(r); setSearchError(false); setSearching(false); } })
+        .catch(() => { if (alive) { setSearchError(true); setSearching(false); } });
+    }, 250);
+    return () => { alive = false; clearTimeout(timer); };
   }, [query]);
 
   const aboutProfile = (): Profile | null => {
@@ -134,8 +141,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
     await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
     setPlan(stored);
     setStage('today');
-    const s = auth.session;
-    if (s) upsertProfile(supabaseUrl, supabaseAnonKey, s, profile, targets).catch(() => {});
+    if (auth.session) upsertProfile(supabaseUrl, supabaseAnonKey, auth, profile, targets).catch(() => {});
   };
 
   // LOCAL calendar day — must match the date rendered in the header below.
@@ -233,6 +239,14 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
     } finally { setAuthBusy(false); }
   };
 
+  // B-13: Trends/Report had no handler at all — tapping did nothing, which
+  // reads as a broken app. They now answer honestly (and render dimmed).
+  const onTab = (i: number) => {
+    if (i === 0) { setStage('today'); return; }
+    if (i === 3) { setStage('profile'); return; }
+    alert(i === 1 ? str.trends : str.report, str.tabSoon);
+  };
+
   const comingSoon = () => alert(onb.comingSoonTitle, onb.comingSoonBody); // TODO(B-09): needs Harish's Apple/Google dev accounts
   const soon = (what: string) => () => alert(what, 'Arrives in Phase 2.'); // TODO(stub): P2
 
@@ -252,14 +266,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
   const doDelete = async () => {
     setDeleting(true);
     try {
-      const s = auth.session;
-      if (s) {
-        const res = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${s.access_token}`, apikey: supabaseAnonKey },
-        });
-        if (!res.ok) throw new Error(`server delete failed: ${res.status}`);
-      }
+      if (auth.session) await deleteAccount(supabaseUrl, supabaseAnonKey, auth);
       await store.clear();
       await water.clear();
       await kv.setItem(PROFILE_KEY, '');
@@ -323,7 +330,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
           onExport={doExport} onHelp={soon('Help & FAQ')}
           onSignOut={doSignOut}
           onDeleteAccount={() => setConfirmDelete(true)}
-          onTab={(i) => { if (i === 0) setStage('today'); }}
+          onTab={onTab}
           onLog={() => { setStage('today'); setSheet('log'); }} />
         </FadeSlideIn>
         <Modal visible={confirmDelete} transparent animationType="slide" onRequestClose={() => setConfirmDelete(false)}>
@@ -351,7 +358,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
       <TodayScreen theme={theme} vm={vm}
         onLog={() => setSheet('log')}
         onScan={soon('Scan')} onDescribe={soon('Describe')}
-        onTab={(i) => { if (i === 3) setStage('profile'); }}
+        onTab={onTab}
         onProfile={() => setStage('profile')}
         onAddWater={() => void addWater()}
         onUndoWater={() => void undoWater()}
@@ -369,7 +376,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
           )}
           {sheet === 'search' && (
             <View style={{ height: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
-              <SearchScreen theme={theme} query={query} error={searchError}
+              <SearchScreen theme={theme} query={query} error={searchError} busy={searching}
                 results={results.map((r) => ({
                   id: r.id, name: r.name,
                   subtitle: `100 g · ${Math.round(r.kcal_per_100g)} kcal · ${Math.round(r.protein_g_per_100g)} g protein`,

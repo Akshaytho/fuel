@@ -18,14 +18,17 @@ export function createSupabaseFoodRepo(url: string, anonKey: string): FoodRepo {
     async search(query, limit = 20) {
       const q = query.trim();
       if (q.length < 2) return [];
-      const params = new URLSearchParams({
-        select: 'id,name,kcal_per_100g,protein_g_per_100g,carbs_g_per_100g,fat_g_per_100g',
-        name: `ilike.*${q.replace(/[%*,()]/g, ' ')}*`,
-        order: 'name.asc',
-        limit: String(limit),
-      });
-      const res = await fetch(`${url}/rest/v1/foods?${params}`, {
-        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      // B-20: ranking happens IN THE DATABASE (migration 0005). Alphabetical
+      // ordering put "Babyfood, apple-banana juice" above "Bananas, raw", and
+      // client-side re-ranking can't fix that — at scale the right rows aren't
+      // in the alphabetical first page at all.
+      const res = await fetch(`${url}/rest/v1/rpc/search_foods`, {
+        method: 'POST',
+        headers: {
+          apikey: anonKey, Authorization: `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ q, lim: limit }),
       });
       if (!res.ok) throw new Error(`food search failed: ${res.status}`);
       const rows = (await res.json()) as Array<Record<string, unknown>>;

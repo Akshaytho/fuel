@@ -37,14 +37,41 @@ export function createAuth(url: string, anonKey: string, kv: KV) {
     return session;
   }
 
+  // B-14: one in-flight refresh at a time. Without this, a burst of 401s
+  // (sync pushes several entries) would fire N parallel refreshes and the
+  // losers would invalidate the winner's rotated refresh_token.
+  let refreshing: Promise<Session | null> | null = null;
+
   return {
     get session() { return session; },
+
+    /**
+     * B-14: exchange the refresh token for a fresh access token. Access tokens
+     * expire in ~1 h, so ANY session older than that used to 401 into the
+     * silent catch in sync() — the app looked online and simply never synced.
+     */
+    async refresh(): Promise<Session | null> {
+      if (refreshing) return refreshing;
+      const token = session?.refresh_token;
+      if (!token) return null;
+      refreshing = (async () => {
+        try {
+          return adopt(await call('token?grant_type=refresh_token', { refresh_token: token }));
+        } catch {
+          return null;              // refresh token itself is dead → caller re-auths
+        } finally {
+          refreshing = null;
+        }
+      })();
+      return refreshing;
+    },
 
     /** Restore + refresh persisted session; null if none/invalid. */
     async init(): Promise<Session | null> {
       const raw = await kv.getItem(KEY);
       if (!raw) return null;
       const old = JSON.parse(raw) as Session;
+      if (!old?.refresh_token) return null;
       try {
         return adopt(await call('token?grant_type=refresh_token', { refresh_token: old.refresh_token }));
       } catch { return null; }
