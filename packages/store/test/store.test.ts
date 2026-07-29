@@ -4,7 +4,7 @@ import { LogStore, MemoryAdapter, type Remote, type LocalEntry, type NewEntry } 
 const entry = (over: Partial<NewEntry> = {}): NewEntry => ({
   day: '2026-07-27', food_id: null, food_name: 'Banana', grams: 118,
   kcal: 105, protein_g: 1.3, carbs_g: 26.9, fat_g: 0.4,
-  source: 'search', logged_at: '2026-07-27T12:00:00Z', ...over,
+  source: 'search', meal: 'lunch', logged_at: '2026-07-27T12:00:00Z', ...over,
 });
 
 class FlakyRemote implements Remote {

@@ -35,8 +35,9 @@ Add newly discovered work as new boxes — never do it silently.
 - [ ] B-11 SDK 54 upgrade landed out-of-band (expo 53→54, RN 0.79→0.81.5, react 19.0→19.1,
       expo-sqlite 15→16, rn-svg→15.12.1). Forced: Expo Go only ever supports the newest SDK.
       Unplanned change to a "Phase 1 complete" tree — needs its own review/commit.
-- [ ] B-12 Meal selection is a DEAD CONTROL: PortionSheet passes `meal`, AppRoot.logIt drops
-      it (`_meal`); no `meal` field in LocalEntry or log_entries. Needs spec + migration.
+- [x] B-12 DONE (session 4): migration 0004 adds log_entries.meal; LocalEntry carries it;
+      logIt persists it; the entry row now reads "Dinner · 100 g · 51 kcal". Journey taps the
+      meal chip and asserts the choice survives the log.
 - [ ] B-13 Trends (tab 1) and Report (tab 2) are dead — no handler, no feedback. Wire or
       mark honestly per the no-dead-controls rule.
 - [ ] B-14 Access token never refreshed after boot (~1h expiry) → later pushes 401 into the
@@ -44,13 +45,17 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] B-15 FIXED (session 2): sign-in→sign-up fallback kept, but a sign-up rejection of
       "already registered" now surfaces as "Wrong password for this email" (the only way that
       branch is reached). Regex verified against live GoTrue 422 user_already_exists.
-- [ ] B-16 Fabricated Today data: `streak {days:1}` hardcoded, `water.liters` always 0 with a
-      dead "+ Add". Violates the data-in-DB rule — back with real data or remove.
-- [ ] B-17 "Day 1" shows on ANY day with no entries — a long-time user who hasn't logged today
-      sees the Day-1 empty state. Use days-since-createdAt, not today's entry count.
-- [ ] B-18 Avatar hardcoded to "A" (TodayScreen Header) for every user.
-- [ ] B-19 "Offline — your log will sync" is really "unsynced" (`pendingCount > 0`). Separate
-      genuine connectivity from pending-sync, and surface sync failures instead of swallowing.
+- [x] B-16 DONE (session 4): streak is now domain computeStreak() over real logged days
+      (current/longest/isLongest/loggedToday, 10 tests incl. DST + gap-breaking). Water is a
+      real feature: water_entries table (client_id idempotent, RLS), WaterStore (8 tests),
+      tap-to-add 250 ml, long-press undo, syncs and survives relaunch.
+- [x] B-17 DONE (session 4): domain dayNumber(startDay, today) from the stored createdAt;
+      header reads "· Day N" always. Day arithmetic is DST-proof (UTC-parts, unit-tested).
+- [x] B-18 DONE (session 4): initial derived from the signed-in account; journey asserts a
+      journey-* account shows "J", not "A". Avatar also gained press feedback.
+- [x] B-19 DONE (session 4): four distinct states (synced / pending / offline / failed).
+      "No connection" is claimed only when the platform says navigator.onLine === false;
+      a failed push now surfaces "Sync failed — tap to retry" as a real, tappable retry.
 - [ ] B-20 Search fires one request per keystroke (no debounce); results rank alphabetically,
       so "banana" surfaces "Babyfood, apple-banana juice" before "Bananas, raw".
 - [x] B-21 AppRoot recomputes remaining/progress inline instead of calling summarizeDay(),

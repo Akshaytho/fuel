@@ -9,15 +9,16 @@ export interface StatCardProps {
   accessory?: React.ReactNode;   // flame emoji text / "+250"
   value: string;
   valueSuffix?: string;
+  testID?: string;
 }
-export function StatCard({ theme, title, accessory, value, valueSuffix }: StatCardProps) {
+export function StatCard({ theme, title, accessory, value, valueSuffix, testID }: StatCardProps) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.card, borderRadius: radius.card, padding: space.s4, gap: space.s2 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ fontSize: t.headline.size, fontWeight: t.headline.weight, color: theme.label }}>{title}</Text>
         {accessory}
       </View>
-      <Text numberOfLines={1} style={{ fontSize: t.title2.size, fontWeight: '700', color: theme.label }}>
+      <Text testID={testID} numberOfLines={1} style={{ fontSize: t.title2.size, fontWeight: '700', color: theme.label }}>
         {value}
         {valueSuffix !== undefined && (
           <Text style={{ fontSize: t.footnote.size, fontWeight: '400', color: theme.secondaryLabel }}> {valueSuffix}</Text>

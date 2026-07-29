@@ -126,7 +126,7 @@ await step('Start Day 1 → Day-1 empty Today with OUR targets', async () => {
   await page.getByText('1,553').first().waitFor();
 });
 await page.screenshot({ path: 'out/j4-day1.png' });
-await step('log real food: live search → portion → rings move', async () => {
+await step('log real food: live search → pick MEAL → portion → rings move', async () => {
   await page.getByTestId('tab-log').click();
   await page.getByText(/YOUR GO-TOS/).waitFor();
   await page.locator('input').first().click();
@@ -135,8 +135,32 @@ await step('log real food: live search → portion → rings move', async () => 
   await page.waitForTimeout(2500);                       // live query
   await page.locator('[data-testid^="add-"]').first().click();
   await page.getByTestId('log-cta').waitFor();
+  await page.getByTestId('meal-dinner').click();         // B-12: was a dead control
   await page.getByTestId('log-cta').click();
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 5000 });
+});
+await step('B-12: the meal I picked survives the log and shows on the entry', async () => {
+  await page.getByText(/Dinner ·/).waitFor({ timeout: 4000 });
+});
+await step('B-18: avatar shows MY initial, not a hardcoded "A"', async () => {
+  const initial = await page.getByTestId('avatar').textContent();
+  if (initial !== 'J') throw new Error(`avatar showed "${initial}" for a journey-* account`);
+});
+await step('B-16: streak reads 1 from REAL logged days (not a hardcoded 1)', async () => {
+  const v = (await page.getByTestId('streak-value').textContent()).trim();
+  if (v !== '1 day') throw new Error(`streak showed "${v}" after exactly one logged day`);
+});
+await step('B-16: water is a LIVE control — two taps make it 0.5 L', async () => {
+  const wtxt = () => page.getByTestId('water-value').textContent().then((x) => x.trim());
+  const first = await wtxt();
+  if (first !== '0 / 2.5 L') throw new Error(`fresh day showed ${first}`);
+  const settle = (want) => page.waitForFunction(
+    (w) => document.querySelector('[data-testid="water-value"]')?.textContent?.trim() === w,
+    want, { timeout: 5000 });
+  await page.getByTestId('water-add').click();
+  await settle('0.3 / 2.5 L');                                    // 250 ml
+  await page.getByTestId('water-add').click();
+  await settle('0.5 / 2.5 L');
 });
 // page.reload() below is the ONE allowed non-tap action (CLAUDE.md rule 0a):
 // it simulates killing and relaunching the app, which has no tappable gesture.
@@ -145,6 +169,9 @@ await step('RELAUNCH: splash again, then straight to Today, data intact', async 
   await page.getByTestId('boot-splash').waitFor({ timeout: 3000 });
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 9000 });
   await page.getByText('1,553').first().waitFor();
+  await page.waitForFunction(                                      // water survived relaunch
+    () => document.querySelector('[data-testid="water-value"]')?.textContent?.trim() === '0.5 / 2.5 L',
+    null, { timeout: 6000 });
   if (await page.getByText('What are we working toward?').isVisible().catch(() => false)) {
     throw new Error('onboarding shown again');
   }
@@ -197,7 +224,8 @@ await step('Delete confirmed: server + local erased, back to Welcome', async () 
   await page.getByTestId('row-delete').click();
   await page.getByTestId('confirm-delete').click();
   await page.getByText('The honest way to eat better').waitFor({ timeout: 20000 });
-  const left = await page.evaluate(() => (window.localStorage.getItem('fuel.profile.v1') ?? '') + '|' + (window.localStorage.getItem('entries') ?? ''));
+  const left = await page.evaluate(() => (window.localStorage.getItem('fuel.profile.v1') ?? '') + '|'
+    + (window.localStorage.getItem('entries') ?? '') + '|' + (window.localStorage.getItem('water') ?? ''));
   if (left.replace(/[|\[\]]/g, '').length > 0) throw new Error('local remnants: ' + left.slice(0, 60));
 });
 await page.screenshot({ path: 'out/j7-deleted.png' });

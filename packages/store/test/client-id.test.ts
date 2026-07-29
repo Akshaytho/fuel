@@ -7,7 +7,7 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 const entry = (): NewEntry => ({
   day: '2026-07-28', food_id: null, food_name: 'Bananas, raw', grams: 100,
   kcal: 89, protein_g: 1.1, carbs_g: 22.8, fat_g: 0.3,
-  source: 'search', logged_at: '2026-07-28T12:00:00Z',
+  source: 'search', meal: 'lunch', logged_at: '2026-07-28T12:00:00Z',
 });
 
 const withoutWebCrypto = async (fn: () => Promise<void>) => {

@@ -1,6 +1,8 @@
 /** Offline-first log store (spec 0006, ADR-008). Pure TS — no platform imports. */
 import { Macros, sumMacros } from '@fuel/domain';
 
+export * from './water';
+
 export interface LocalEntry extends Macros {
   client_id: string;
   day: string;                 // YYYY-MM-DD
@@ -8,6 +10,8 @@ export interface LocalEntry extends Macros {
   food_name: string;
   grams: number;
   source: 'scan' | 'describe' | 'search' | 'manual';
+  /** which meal the user picked in the portion sheet (B-12: was dropped) */
+  meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   logged_at: string;           // ISO
   synced: boolean;
 }
@@ -107,7 +111,7 @@ export class LogStore {
   }
 }
 
-function defaultId(): string {
+export function defaultId(): string {
   const c: Crypto | undefined = (globalThis as { crypto?: Crypto }).crypto;
   if (c?.randomUUID) return c.randomUUID();
   // React Native/Hermes ships no Web Crypto (Expo 54 installs TextDecoder, URL

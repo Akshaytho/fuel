@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
-import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon } from '@fuel/ui';
+import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon, pressedStyle } from '@fuel/ui';
 import type { DaySummary, Targets } from '@fuel/domain';
 import { str } from './strings';
 
@@ -13,13 +13,18 @@ export type TodayVM =
   | { kind: 'loading' }
   | {
       kind: 'ready';
-      dateLabel: string;            // "SATURDAY, JULY 26" (caps) — "· DAY 1" appended when empty
-      offline: boolean;
+      dateLabel: string;            // "SATURDAY, JULY 26" (caps) — "· DAY n" from real signup date
+      /** B-19: distinct states, not one conflated "offline" flag */
+      sync: { state: 'synced' | 'pending' | 'offline' | 'failed'; pending: number };
+      /** B-18: real initial from the signed-in account, never a hardcoded "A" */
+      initial: string;
       targets: Targets;
       summary: DaySummary;
       entries: EntryVM[];           // flat "TODAY'S MEALS" list per design
-      streak?: { days: number; isLongest: boolean } | undefined;
-      water?: { liters: number; goalLiters: number } | undefined;
+      /** B-16: computed from real logged days; current 0 = no streak yet */
+      streak: { current: number; longest: number; isLongest: boolean; loggedToday: boolean };
+      /** B-16: real logged water; liters is the actual sum, never a stub 0 */
+      water: { liters: number; goalLiters: number };
       coach?: string | undefined;   // green strip message; omit to hide
     };
 
@@ -31,11 +36,16 @@ export interface TodayScreenProps {
   onDescribe: () => void;
   onTab: (index: number) => void;
   onProfile: () => void;
+  onAddWater: () => void;
+  onUndoWater: () => void;
+  onRetrySync: () => void;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 
-function Header({ theme, dateLabel, onProfile }: { theme: Theme; dateLabel?: string | undefined; onProfile: () => void }) {
+function Header({ theme, dateLabel, initial, onProfile }: {
+  theme: Theme; dateLabel?: string | undefined; initial: string; onProfile: () => void;
+}) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
       <View style={{ gap: 2 }}>
@@ -48,11 +58,11 @@ function Header({ theme, dateLabel, onProfile }: { theme: Theme; dateLabel?: str
           {str.summary}
         </Text>
       </View>
-      <Pressable onPress={onProfile} style={{
+      <Pressable testID="avatar" onPress={onProfile} style={({ pressed }) => [{
         width: 40, height: 40, borderRadius: radius.pill, backgroundColor: theme.avatarBg,
         alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>A</Text>
+      }, pressedStyle(pressed)]}>
+        <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>{initial}</Text>
       </Pressable>
     </View>
   );
@@ -103,12 +113,12 @@ function NutritionCard({ theme, targets, summary, statusLabel, statusColor }: {
   );
 }
 
-function EmptyNutritionCard({ theme, targets }: { theme: Theme; targets: Targets }) {
+function EmptyNutritionCard({ theme, targets, dayLabel }: { theme: Theme; targets: Targets; dayLabel: string }) {
   return (
     <View style={{ backgroundColor: theme.card, borderRadius: radius.card, padding: space.s4, gap: space.s4 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ fontSize: t.headline.size, fontWeight: t.headline.weight, color: theme.label }}>{str.nutrition}</Text>
-        <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{str.day1}</Text>
+        <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{dayLabel}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s5 }}>
         <TripleRing theme={theme} calories={0} protein={0} inner={0} size={168}>
@@ -128,16 +138,30 @@ function EmptyNutritionCard({ theme, targets }: { theme: Theme; targets: Targets
   );
 }
 
-export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onProfile }: TodayScreenProps) {
+export function TodayScreen({
+  theme, vm, onLog, onScan, onDescribe, onTab, onProfile, onAddWater, onUndoWater, onRetrySync,
+}: TodayScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <ScrollView contentContainerStyle={{ padding: space.s4, paddingBottom: 120, gap: space.s4 }}>
-        <Header theme={theme} dateLabel={vm.kind === 'ready' ? vm.dateLabel : undefined} onProfile={onProfile} />
+        <Header theme={theme} dateLabel={vm.kind === 'ready' ? vm.dateLabel : undefined}
+          initial={vm.kind === 'ready' ? vm.initial : '·'} onProfile={onProfile} />
 
-        {vm.kind === 'ready' && vm.offline && (
-          <View style={{ backgroundColor: theme.cardElevated, borderRadius: radius.md, paddingVertical: space.s2, paddingHorizontal: space.s3, alignSelf: 'flex-start' }}>
-            <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{str.offline}</Text>
-          </View>
+        {vm.kind === 'ready' && vm.sync.state !== 'synced' && (
+          <Pressable testID="sync-pill" disabled={vm.sync.state !== 'failed'} onPress={onRetrySync}
+            style={({ pressed }) => [{
+              backgroundColor: theme.cardElevated, borderRadius: radius.md,
+              paddingVertical: space.s2, paddingHorizontal: space.s3, alignSelf: 'flex-start',
+            }, pressedStyle(pressed)]}>
+            <Text style={{
+              fontSize: t.footnote.size,
+              color: vm.sync.state === 'failed' ? theme.danger : theme.secondaryLabel,
+            }}>
+              {vm.sync.state === 'offline' ? str.offline
+                : vm.sync.state === 'failed' ? str.syncFailed
+                : str.unsynced(vm.sync.pending)}
+            </Text>
+          </Pressable>
         )}
 
         {vm.kind === 'loading' ? (
@@ -151,7 +175,7 @@ export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onPro
           </View>
         ) : vm.entries.length === 0 ? (
           <>
-            <EmptyNutritionCard theme={theme} targets={vm.targets} />
+            <EmptyNutritionCard theme={theme} targets={vm.targets} dayLabel={vm.dateLabel.split('· ')[1] ?? ''} />
             <ActionRow theme={theme} iconBg={theme.softBlueBg} onPress={onScan}
               icon={<ScanIcon color={theme.tint} />}
               title={str.scanTitle} subtitle={str.scanSub} />
@@ -172,18 +196,26 @@ export function TodayScreen({ theme, vm, onLog, onScan, onDescribe, onTab, onPro
             </View>
 
             <View style={{ flexDirection: 'row', gap: space.s4 }}>
-              {vm.streak && (
-                <StatCard theme={theme} title={str.streak}
-                  accessory={<Text style={{ fontSize: t.subhead.size }}>🔥</Text>}
-                  value={String(vm.streak.days)}
-                  valueSuffix={vm.streak.isLongest ? str.daysLongest : str.days} />
-              )}
-              {vm.water && (
-                <StatCard theme={theme} title={str.water}
+              <StatCard theme={theme} title={str.streak} testID="streak-value"
+                accessory={<Text style={{ fontSize: t.subhead.size }}>{vm.streak.loggedToday ? '🔥' : '·'}</Text>}
+                value={String(vm.streak.current)}
+                valueSuffix={
+                  // Precedence matters: on day one current===longest===1, which
+                  // read as "1 days · your longest" — grammatically wrong AND a
+                  // hollow celebration. Singular first, only brag from day 2.
+                  vm.streak.current === 0 ? str.streakStart
+                    : vm.streak.current === 1 ? str.day
+                    : vm.streak.isLongest ? str.daysLongest
+                    : str.days
+                } />
+              <Pressable testID="water-add" onPress={onAddWater}
+                onLongPress={onUndoWater}
+                style={({ pressed }) => [{ flex: 1 }, pressedStyle(pressed)]}>
+                <StatCard theme={theme} title={str.water} testID="water-value"
                   accessory={<Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.water }}>{str.waterAdd}</Text>}
                   value={String(vm.water.liters)}
                   valueSuffix={`/ ${vm.water.goalLiters} L`} />
-              )}
+              </Pressable>
             </View>
 
             <View style={{ gap: space.s2 }}>

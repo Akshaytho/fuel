@@ -3,11 +3,12 @@ import { View, Modal, Pressable } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
   scalePer100g, summarizeConsumed, computeTargets, mealForHour, localDayISO,
+  computeStreak, dayNumber, waterLitersFor,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
-import { LogStore, type StorageAdapter } from '@fuel/store';
+import { LogStore, WaterStore, GLASS_ML, type StorageAdapter, type WaterStorageAdapter } from '@fuel/store';
 import { createAuth, type KV, type Auth } from '../data/auth';
-import { createRemote, upsertProfile } from '../data/remote';
+import { createRemote, createWaterRemote, upsertProfile } from '../data/remote';
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
@@ -18,6 +19,13 @@ import { pf } from './profileStrings';
 import { Sheet, CTAButton, BootSplash, FadeSlideIn } from '@fuel/ui';
 import { Text } from 'react-native';
 import { onb } from './onbStrings';
+import { str } from './strings';
+
+/** Only claim "no connection" when the platform actually says so (B-19). */
+function isOnline(): boolean {
+  const n = (globalThis as { navigator?: { onLine?: boolean } }).navigator;
+  return n?.onLine !== false;
+}
 
 /** The whole user journey (spec 0007). Injected deps so the SAME component
     runs on device (sqlite kv) and in the verification harness (web kv). */
@@ -25,6 +33,7 @@ export interface AppRootProps {
   theme: Theme;
   kv: KV;
   entryAdapter: StorageAdapter;
+  waterAdapter: WaterStorageAdapter;
   supabaseUrl: string;
   supabaseAnonKey: string;
   alert: (title: string, message: string) => void;
@@ -37,10 +46,14 @@ const PROFILE_KEY = 'fuel.profile.v1';
 
 type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'profile';
 
-export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
+export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
   const store = useMemo(
     () => new LogStore(entryAdapter, createRemote(supabaseUrl, supabaseAnonKey, () => auth.session)),
+    [],
+  );
+  const water = useMemo(
+    () => new WaterStore(waterAdapter, createWaterRemote(supabaseUrl, supabaseAnonKey, () => auth.session)),
     [],
   );
   const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey), []);
@@ -66,11 +79,24 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FoodHit[]>([]);
   const [searchError, setSearchError] = useState(false);
+  // B-19: a failed push used to vanish into `catch {}` and show the same
+  // "Offline" pill as a queued one. Track the real outcome.
+  const [syncFailed, setSyncFailed] = useState(false);
+
+  const runSync = async () => {
+    try {
+      await store.sync();
+      await water.sync();
+      setSyncFailed(store.pendingCount > 0 || water.pendingCount > 0);
+    } catch { setSyncFailed(true); }
+    bump();
+  };
 
   useEffect(() => {
     (async () => {
       const t0 = Date.now();
       await store.init();
+      await water.init();
       await auth.init();                       // restore session if any
       const raw = await kv.getItem(PROFILE_KEY);
       const returning = !!raw && raw.length > 2;
@@ -80,7 +106,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
       const hold = Math.max(0, 1400 - (Date.now() - t0));
       setTimeout(() => {
         setStage(returning ? 'today' : 'welcome');
-        if (returning) void store.sync().then(() => bump()); // background push
+        if (returning) void runSync();                       // background push
       }, hold);
     })();
   }, []);
@@ -124,27 +150,39 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     // B-21 fix: the DISPLAYED numbers come from the same unit-tested domain
     // function the suite exercises — no parallel inline math to drift.
     const summary = summarizeConsumed(store.consumedForDay(day), entries.length, targets);
+    // B-17: the day number comes from when this user actually started, so a
+    // 6-month user with an empty day sees "Day 184", never "Day 1" again.
+    const startDay = localDayISO(new Date(plan.createdAt ?? Date.now()));
+    // B-16: streak computed from the real distinct logged days.
+    const streak = computeStreak(store.allEntries().map((e) => e.day), day);
+    const pending = store.pendingCount + water.pendingCount;
     return {
       kind: 'ready',
       dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-        + (entries.length === 0 ? ' · Day 1' : ''),
-      offline: store.pendingCount > 0,
+        + ` · ${str.dayN(dayNumber(startDay, day))}`,
+      sync: {
+        state: pending === 0 ? 'synced' : !isOnline() ? 'offline' : syncFailed ? 'failed' : 'pending',
+        pending,
+      },
+      // B-18: real initial from the signed-in account (was a hardcoded "A").
+      initial: (auth.session?.email?.trim()?.[0] ?? '·').toUpperCase(),
       targets,
       summary,
       entries: entries.map((e) => ({
         id: e.client_id, title: e.food_name,
-        subtitle: `${Math.round(e.grams)} g · ${Math.round(e.kcal)} kcal`,
+        subtitle: `${cap(e.meal)} · ${Math.round(e.grams)} g · ${Math.round(e.kcal)} kcal`,
         proteinLabel: `${Math.round(e.protein_g)}g`,
       })),
-      streak: entries.length > 0 ? { days: 1, isLongest: false } : undefined,
-      water: entries.length > 0 ? { liters: 0, goalLiters: plan.water_l } : undefined,
+      streak,
+      // B-16: the actual litres this user logged today (was always 0).
+      water: { liters: water.litersForDay(day), goalLiters: plan.water_l },
       coach: entries.length > 0
         ? `Nice — ${Math.max(0, Math.round(summary.remaining.protein_g))} g protein to go.`
         : undefined,
     };
   }, [stage, plan, tick]);
 
-  const logIt = async (grams: number, _meal: Meal) => {
+  const logIt = async (grams: number, meal: Meal) => {
     if (!picked) return;
     const per100 = {
       kcal: picked.kcal_per_100g, protein_g: picked.protein_g_per_100g,
@@ -152,12 +190,20 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
     };
     await store.add({
       day: todayISO(), food_id: picked.id, food_name: picked.name, grams,
-      ...scalePer100g(per100, grams), source: 'search', logged_at: new Date().toISOString(),
+      ...scalePer100g(per100, grams), source: 'search', meal, logged_at: new Date().toISOString(),
     });
     bump();
     setSheet('none'); setPicked(null); setQuery(''); setResults([]);
-    await store.sync().catch(() => {});
+    await runSync();
+  };
+
+  const addWater = async () => {
+    await water.add({ day: todayISO(), ml: GLASS_ML, logged_at: new Date().toISOString() });
     bump();
+    await runSync();
+  };
+  const undoWater = async () => {
+    if (await water.removeLast(todayISO())) bump();
   };
 
   const emailAuth = async (email: string, password: string) => {
@@ -215,6 +261,7 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
         if (!res.ok) throw new Error(`server delete failed: ${res.status}`);
       }
       await store.clear();
+      await water.clear();
       await kv.setItem(PROFILE_KEY, '');
       await auth.signOut();
       setPlan(null);
@@ -305,7 +352,10 @@ export function AppRoot({ theme, kv, entryAdapter, supabaseUrl, supabaseAnonKey,
         onLog={() => setSheet('log')}
         onScan={soon('Scan')} onDescribe={soon('Describe')}
         onTab={(i) => { if (i === 3) setStage('profile'); }}
-        onProfile={() => setStage('profile')} />
+        onProfile={() => setStage('profile')}
+        onAddWater={() => void addWater()}
+        onUndoWater={() => void undoWater()}
+        onRetrySync={() => void runSync()} />
       </FadeSlideIn>
       <Modal visible={sheet !== 'none'} transparent animationType="slide" onRequestClose={() => setSheet('none')}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setSheet('none')} />
