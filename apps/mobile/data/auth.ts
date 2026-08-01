@@ -52,10 +52,17 @@ export function createAuth(url: string, anonKey: string, kv: KV) {
      */
     async refresh(): Promise<Session | null> {
       if (refreshing) return refreshing;
-      const token = session?.refresh_token;
-      if (!token) return null;
       refreshing = (async () => {
         try {
+          // RC-6 (D-9): a failed BOOT refresh used to null the session for the
+          // whole run — "tap to retry" could never succeed. The durable truth
+          // is the kv-persisted refresh token; fall back to it.
+          let token = session?.refresh_token;
+          if (!token) {
+            const raw = await kv.getItem(KEY);
+            token = raw ? (JSON.parse(raw) as Session | null)?.refresh_token : undefined;
+          }
+          if (!token) return null;
           return adopt(await call('token?grant_type=refresh_token', { refresh_token: token }));
         } catch {
           return null;              // refresh token itself is dead → caller re-auths

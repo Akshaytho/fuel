@@ -42,10 +42,10 @@ describe('WaterStore (B-16: real water, not a hardcoded 0)', () => {
     await s.add({ day: 'a', ml: 250, logged_at: now });
     await s.add({ day: 'b', ml: 250, logged_at: now });
     await s.add({ day: 'a', ml: 250, logged_at: now });
-    expect(await s.removeLast('a')).toBe(true);
+    expect(await s.removeLast('a')).toBeTruthy();
     expect(s.mlForDay('a')).toBe(250);
     expect(s.mlForDay('b')).toBe(250);
-    expect(await s.removeLast('zzz')).toBe(false);
+    expect(await s.removeLast('zzz')).toBeNull();
   });
 
   it('every entry gets a distinct RFC-4122 client_id (device path safe)', async () => {

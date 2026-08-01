@@ -26,6 +26,7 @@ export const onb = {
   female: 'Female', male: 'Male', other: 'Other',
   age: 'Age', height: 'Height', weight: 'Current weight',
   activityCaps: 'HOW ACTIVE ARE YOU, HONESTLY?',
+  cancel: 'Cancel',
   // B-25 / research 0001 §2: multipliers are standard, but people reliably
   // pick one level too high — which is a ~300 kcal/day error. Concrete,
   // countable anchors (steps + sessions) instead of adjectives, and an

@@ -237,10 +237,50 @@ await step('back to Today via the tab bar (tap, not URL)', async () => {
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 4000 });
 });
 
+/* ---------- QA RC-3 (D-4): a weigh-in RETUNES the whole plan ---------- */
+await step('D-4: logging 60.0 kg recomputes targets — Today drops 1,553 -> 1,463', async () => {
+  await page.getByTestId('tab-trends').click();
+  await page.getByTestId('log-weight-cta').first().click();
+  await page.getByTestId('weight-kg-input').waitFor({ timeout: 4000 });
+  await human(page.getByTestId('weight-kg-input'), '60');
+  await page.getByTestId('weight-save').click();
+  await page.waitForTimeout(600);
+  await page.getByTestId('tab-today').click();
+  // f/28/165/60/light/lose -> BMR 1330.25 x1.375 -20% = 1463.3 -> 1,463
+  await page.getByText('1,463').first().waitFor({ timeout: 5000 });
+  if (await page.getByText('1,553').first().isVisible().catch(() => false)) {
+    throw new Error('old frozen target still on screen after weigh-in');
+  }
+});
+
+/* ---------- QA RC-1 (D-1 + D-6): sign-out wipes; sign-in RESTORES ---------- */
+await step('D-1: sign out clears this device back to Welcome', async () => {
+  await page.getByText('You', { exact: true }).click();
+  await page.getByText('CURRENT GOAL').waitFor({ timeout: 4000 });
+  await page.getByTestId('row-signout').click();
+  await page.getByText('The honest way to eat better').waitFor({ timeout: 8000 });
+  const left = await page.evaluate(() =>
+    (window.localStorage.getItem('fuel.profile.v1') ?? '') + (window.localStorage.getItem('entries') ?? '[]'));
+  if (left.replace(/[\[\]]/g, '').length > 0) throw new Error('local data survived sign-out: ' + left.slice(0, 50));
+});
+await step('D-6: signing back in RESTORES history from the server — no fake Day 1', async () => {
+  await page.getByTestId('auth-email').click();
+  await human(page.getByTestId('email-input'), EMAIL);
+  await human(page.getByTestId('password-input'), PW);
+  await page.getByTestId('auth-submit').click();
+  // straight to Today (onboarding SKIPPED), meals + targets back from Postgres
+  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 20000 });
+  await page.getByText('1,463').first().waitFor({ timeout: 5000 });
+  await page.getByText(/Dinner ·/).waitFor({ timeout: 5000 });   // the logged banana came back
+  if (await page.getByText('What are we working toward?').isVisible().catch(() => false)) {
+    throw new Error('restore fell into onboarding despite server profile');
+  }
+});
+
 await step('You tab opens Profile: goal card with real targets', async () => {
   await page.getByText('You', { exact: true }).click();
   await page.getByText('CURRENT GOAL').waitFor({ timeout: 4000 });
-  await page.getByText(/1,553 kcal/).waitFor();
+  await page.getByText(/1,463 kcal/).waitFor();   // post-weigh-in adapted target
   await page.getByText(/Fueling since/).waitFor();
   await page.getByText('your data stays yours').waitFor();
 });

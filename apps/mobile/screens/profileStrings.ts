@@ -1,10 +1,12 @@
 import type { Goal } from '@fuel/domain';
 /** Profile strings — centralized until i18next (P0-12). */
 export const pf = {
+  signOutBlockedTitle: 'Not synced yet',
+  signOutBlockedBody: (n: number) => `${n} item${n === 1 ? ' has' : 's have'}n't reached the server. Connect to the internet and try again — signing out now would lose ${n === 1 ? 'it' : 'them'}.`,
   currentGoal: 'CURRENT GOAL',
   goalTitle: (g: Goal) => g === 'lose' ? 'Lose fat · −0.4 kg/week' : g === 'gain' ? 'Build muscle · lean surplus' : 'Maintain · steady',
   change: 'Change',
-  adapts: 'adapts Sundays',
+  adapts: 'adapts as you log weight',
   reminders: 'Reminders',
   units: 'Units',
   health: 'Apple Health',

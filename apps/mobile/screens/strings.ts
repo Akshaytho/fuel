@@ -33,6 +33,7 @@ export const str = {
   water: 'Water',
   waterAdd: '+250',
   waterUndo: 'Undo',
+  undoFailed: "Couldn't remove it from the server — restored. Try again online.",
   todaysMeals: "TODAY'S MEALS",
   trends: 'Trends',
   report: 'Report',

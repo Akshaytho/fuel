@@ -19,7 +19,10 @@ export async function authedFetch(
   url: string,
   init: (s: Session) => RequestInit,
 ): Promise<Response> {
-  const s = ctx.session;
+  // RC-6 (D-9): if boot's refresh failed transiently, the in-memory session is
+  // null but the kv refresh token is still valid — recover it here instead of
+  // failing every push for the rest of the run.
+  const s = ctx.session ?? await ctx.refresh();
   if (!s) throw new Error('no session');
   const first = await fetch(url, init(s));
   if (first.status !== 401 && first.status !== 403) return first;

@@ -2,6 +2,7 @@
 import { Macros, sumMacros } from '@fuel/domain';
 
 export * from './water';
+export * from './migrate';
 export * from './weighins';
 
 export interface LocalEntry extends Macros {
@@ -71,6 +72,14 @@ export class LogStore {
   async clear(): Promise<void> {
     this.assertInit();
     this.entries = [];
+    await this.adapter.save(this.entries);
+  }
+
+  /** RC-1 (D-6): hydrate from the server on sign-in — a new phone must show
+      the user's real history, not force a fake Day 1. Replaces everything. */
+  async replaceAll(entries: LocalEntry[]): Promise<void> {
+    this.assertInit();
+    this.entries = entries.map((e) => ({ ...e }));
     await this.adapter.save(this.entries);
   }
 

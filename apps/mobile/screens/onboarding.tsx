@@ -100,12 +100,22 @@ const GOALS: { id: Goal | 'recomp' | 'habit'; title: string; sub: string }[] = [
 /** recomp/habit map to maintain for target math (recorded in spec). */
 export const goalToDomain = (g: string): Goal => (g === 'lose' ? 'lose' : g === 'gain' ? 'gain' : 'maintain');
 
-export function GoalScreen({ theme, value, onSelect, onContinue }: {
+export function GoalScreen({ theme, value, onSelect, onContinue, onCancel }: {
   theme: Theme; value: string | null; onSelect: (id: string) => void; onContinue: () => void;
+  /** present only when an existing user is EDITING their goal (D-8: the flow
+      must not trap them — accidental taps need a way out) */
+  onCancel?: (() => void) | undefined;
 }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg, padding: space.s5, gap: space.s4 }}>
-      <StepBar theme={theme} step={2} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <StepBar theme={theme} step={2} />
+        {onCancel && (
+          <Pressable testID="goal-cancel" onPress={onCancel} hitSlop={8}>
+            <Text style={{ fontSize: t.body.size, color: theme.tint }}>{onb.cancel}</Text>
+          </Pressable>
+        )}
+      </View>
       <Text style={{ fontSize: t.largeTitle.size - 4, fontWeight: '700', color: theme.label }}>{onb.goalTitle}</Text>
       <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{onb.goalSub}</Text>
       <View style={{ gap: space.s3 }}>

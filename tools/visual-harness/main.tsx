@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { View, Text } from 'react-native';
 import { light } from '@fuel/tokens';
 import type { LocalEntry, StorageAdapter, WaterEntry, WaterStorageAdapter, WeighIn, WeighInStorageAdapter } from '@fuel/store';
+import { normalizeLogEntries, normalizeWaterEntries, normalizeWeighIns } from '@fuel/store';
 import { AppRoot } from '../../apps/mobile/screens/AppRoot';
 
 /* Journey harness (spec 0007 AC1): the REAL AppRoot with web-persistent
@@ -15,15 +16,15 @@ const kv = {
   setItem: async (k: string, v: string) => { window.localStorage.setItem(k, v); },
 };
 const entryAdapter: StorageAdapter = {
-  async load() { const r = window.localStorage.getItem('entries'); return r ? JSON.parse(r) as LocalEntry[] : []; },
+  async load() { return normalizeLogEntries(window.localStorage.getItem('entries')); },
   async save(e) { window.localStorage.setItem('entries', JSON.stringify(e)); },
 };
 const waterAdapter: WaterStorageAdapter = {
-  async load() { const r = window.localStorage.getItem('water'); return r ? JSON.parse(r) as WaterEntry[] : []; },
+  async load() { return normalizeWaterEntries(window.localStorage.getItem('water')); },
   async save(e) { window.localStorage.setItem('water', JSON.stringify(e)); },
 };
 const weighInAdapter: WeighInStorageAdapter = {
-  async load() { const r = window.localStorage.getItem('weighins'); return r ? JSON.parse(r) as WeighIn[] : []; },
+  async load() { return normalizeWeighIns(window.localStorage.getItem('weighins')); },
   async save(e) { window.localStorage.setItem('weighins', JSON.stringify(e)); },
 };
 

@@ -2,14 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Modal, Pressable, TextInput } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
-  scalePer100g, summarizeConsumed, computeTargets, mealForHour, localDayISO,
+  scalePer100g, summarizeConsumed, computeTargets, waterLitersFor, mealForHour, localDayISO,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
-import { LogStore, WaterStore, WeighInStore, GLASS_ML, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
+import { LogStore, WaterStore, WeighInStore, GLASS_ML, normalizeStoredPlan, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
 import { createAuth, type KV, type Auth } from '../data/auth';
-import { createRemote, createWaterRemote, createWeighInRemote, upsertProfile, deleteAccount } from '../data/remote';
+import {
+  createRemote, createWaterRemote, createWeighInRemote, upsertProfile, deleteAccount,
+  deleteWaterEntry, fetchProfile, fetchLogEntries, fetchWaterEntries, fetchWeighIns,
+} from '../data/remote';
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { TrendsScreen, type TrendsVM } from './TrendsScreen';
@@ -47,6 +50,8 @@ export interface AppRootProps {
 
 interface StoredPlan { profile: Profile; targets: Targets; water_l: number; reminder: boolean; createdAt?: string }
 const PROFILE_KEY = 'fuel.profile.v1';
+/** RC-5 (D-10): '1' while the server profile row is behind local truth. */
+const PROFILE_DIRTY_KEY = 'fuel.profile.dirty.v1';
 
 type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'profile';
 
@@ -67,7 +72,9 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey), []);
 
   const [stage, setStage] = useState<Stage>('boot');
-  const [plan, setPlan] = useState<StoredPlan | null>(null);
+  const [plan, setPlanState] = useState<StoredPlan | null>(null);
+  const planRef = React.useRef<StoredPlan | null>(null);
+  const setPlan = (p: StoredPlan | null) => { planRef.current = p; setPlanState(p); };
   const [tick, setTick] = useState(0);
   const bump = () => setTick((x) => x + 1);
 
@@ -99,6 +106,14 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       await store.sync();
       await water.sync();
       await weighIns.sync();
+      // RC-5 (D-10): the profile upsert used to be fire-and-forget with a
+      // swallowed catch — one offline onboarding meant the server NEVER
+      // learned the user's targets. Now it retries on every sync until it
+      // lands, exactly like entries do.
+      if (await kv.getItem(PROFILE_DIRTY_KEY) === '1' && planRef.current) {
+        await upsertProfile(supabaseUrl, supabaseAnonKey, auth, planRef.current.profile, planRef.current.targets);
+        await kv.setItem(PROFILE_DIRTY_KEY, '');
+      }
       setSyncFailed(store.pendingCount > 0 || water.pendingCount > 0 || weighIns.pendingCount > 0);
     } catch { setSyncFailed(true); }
     bump();
@@ -111,9 +126,13 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       await water.init();
       await weighIns.init();
       await auth.init();                       // restore session if any
-      const raw = await kv.getItem(PROFILE_KEY);
-      const returning = !!raw && raw.length > 2;
-      if (returning) setPlan(JSON.parse(raw!) as StoredPlan);
+      // RC-4 (D-7/D-13): validated read — a legacy plan (no createdAt) gets
+      // its start date backfilled from the OLDEST entry; corruption → null →
+      // onboarding. Boot can no longer crash or hang on bad bytes.
+      const oldest = store.allEntries().map((e) => e.day).sort()[0];
+      const parsed = normalizeStoredPlan(await kv.getItem(PROFILE_KEY), oldest);
+      const returning = parsed !== null;
+      if (parsed) setPlan(parsed);
       // Rule 0b: app open is a brand MOMENT — hold the splash long enough
       // for its spring to land, never a static flash (min 1400 ms).
       const hold = Math.max(0, 1400 - (Date.now() - t0));
@@ -121,7 +140,19 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         setStage(returning ? 'today' : 'welcome');
         if (returning) void runSync();                       // background push
       }, hold);
-    })();
+    })().catch(() => setStage('welcome'));     // D-13: boot NEVER hangs on the splash
+  }, []);
+
+  // RC-2 (D-5): "what day is it" must be an INPUT to the screen, not a value
+  // frozen by memoization. An app left open overnight showed yesterday's
+  // rings/water/date until the first tap. A 30 s check bumps on rollover.
+  const dayRef = React.useRef(localDayISO());
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = localDayISO();
+      if (now !== dayRef.current) { dayRef.current = now; bump(); }
+    }, 30_000);
+    return () => clearInterval(t);
   }, []);
 
   // B-20: debounced — typing "banana" used to fire SIX queries, each racing
@@ -151,9 +182,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     if (!profile) return;
     const stored: StoredPlan = { profile, targets, water_l, reminder, createdAt: plan?.createdAt ?? new Date().toISOString() };
     await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
+    await kv.setItem(PROFILE_DIRTY_KEY, '1');
     setPlan(stored);
     setStage('today');
-    if (auth.session) upsertProfile(supabaseUrl, supabaseAnonKey, auth, profile, targets).catch(() => {});
+    void runSync();                            // durable: retried until it lands
   };
 
   // LOCAL calendar day — must match the date rendered in the header below.
@@ -221,12 +253,17 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     // line. The design itself shows a window, and the slope/delta over the
     // window is the user's CURRENT story, not their ancient history).
     const WEIGHT_WINDOW_DAYS = 90;
-    const points = weighIns.all().map((e) => ({ day: e.day, kg: e.kg }))
-      .filter((p) => {
-        const back = daysBetween(p.day, today);
-        return Number.isFinite(back) && back >= 0 && back < WEIGHT_WINDOW_DAYS;
-      })
+    const allPoints = weighIns.all().map((e) => ({ day: e.day, kg: e.kg }))
       .sort((a, b) => daysBetween(b.day, a.day));
+    // D-12: the window used to run BEFORE the existence check, so a user who
+    // paused weighing for 3 months saw "log your first weight" over a year of
+    // history. Anchor the window to their LAST weigh-in, not to today — the
+    // chart always shows their most recent 90 days of real life.
+    const anchor = allPoints.length > 0 ? allPoints[allPoints.length - 1]!.day : today;
+    const points = allPoints.filter((p) => {
+      const back = daysBetween(p.day, anchor);
+      return Number.isFinite(back) && back >= 0 && back < WEIGHT_WINDOW_DAYS;
+    });
     const smoothed = smoothWeights(points);
     const span = points.length > 1 ? daysBetween(points[0]!.day, points[points.length - 1]!.day) : 0;
     const frac = (d: string) => (span > 0 ? daysBetween(points[0]!.day, d) / span : 0.5);
@@ -302,7 +339,20 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     await runSync();
   };
   const undoWater = async () => {
-    if (await water.removeLast(todayISO())) bump();
+    const removed = await water.removeLast(todayISO());
+    if (!removed) return;
+    bump();
+    if (removed.synced) {
+      // D-11: it already reached the server — deleting only locally would
+      // leave a ghost glass that a future restore resurrects.
+      try {
+        await deleteWaterEntry(supabaseUrl, supabaseAnonKey, auth, removed.client_id);
+      } catch {
+        await water.restore(removed);          // local must not lie about the cloud
+        bump();
+        alert(str.water, str.undoFailed);
+      }
+    }
   };
 
   const emailAuth = async (email: string, password: string) => {
@@ -310,8 +360,18 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     try {
       await auth.signIn(email, password);
       setAuthOpen(false);
-      setStage('goal');
-    } catch {
+      await restoreFromServer();               // RC-1 (D-6): new phone ≠ new life
+    } catch (signInErr) {
+      // RC-6 (D-14): a NETWORK failure is not a credential failure. Without
+      // this branch, a dropped request told users with the CORRECT password
+      // "wrong password — use a different email", steering them into creating
+      // a duplicate empty account.
+      const m = signInErr instanceof Error ? signInErr.message : '';
+      if (/network|fetch|timeout|abort/i.test(m)) {
+        setAuthError('No connection — check your internet and try again.');
+        setAuthBusy(false);
+        return;
+      }
       // Supabase returns one opaque error for BOTH "no such user" and "wrong
       // password" (anti-enumeration), so a failed sign-in alone can't tell us
       // which it was. Sign-up disambiguates: if it says the account exists,
@@ -320,7 +380,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       try {
         await auth.signUp(email, password);
         setAuthOpen(false);
-        setStage('goal');
+        await restoreFromServer();             // existing-account-wrong-flow safety too
       } catch (e) {
         const msg = e instanceof Error ? e.message : '';
         setAuthError(
@@ -344,9 +404,68 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     const kg = Number(weightInput);
     if (!Number.isFinite(kg) || kg < 25 || kg > 400) return; // sheet stays open; hint shows range
     await weighIns.set({ day: todayISO(), kg, logged_at: new Date().toISOString() });
+    // RC-3 (D-4): the weigh-in IS the freshest truth about the user's body.
+    // Targets/water goal were frozen at onboarding weight forever — a 90 kg
+    // user who reached 75 kg kept 90 kg targets under a label promising
+    // adaptation. Now every weigh-in recomputes the plan from current weight.
+    if (planRef.current) {
+      const profile: Profile = { ...planRef.current.profile, weight_kg: Math.round(kg * 10) / 10 };
+      const targets = computeTargets(profile);
+      const stored: StoredPlan = {
+        ...planRef.current, profile, targets, water_l: waterLitersFor(profile.weight_kg),
+      };
+      await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
+      await kv.setItem(PROFILE_DIRTY_KEY, '1');
+      setPlan(stored);
+    }
     setWeightOpen(false); setWeightInput('');
     bump();
     await runSync();
+  };
+
+  /**
+   * RC-1 (D-6): sync was write-only — a reinstall or new phone showed a
+   * 300-day user an empty app and forced a fake Day 1. On sign-in we now
+   * pull the server truth: profile+targets (skip onboarding entirely when
+   * they exist) and full entry/water/weigh-in history, marked synced.
+   */
+  const restoreFromServer = async () => {
+    try {
+      const row = await fetchProfile(supabaseUrl, supabaseAnonKey, auth);
+      const complete = row && row.sex && row.age_years && row.height_cm && row.weight_kg
+        && row.activity && row.goal && row.target_kcal;
+      if (!complete) { setStage('goal'); return; }         // genuinely new user
+      const [entries, waterRows, weighRows] = await Promise.all([
+        fetchLogEntries(supabaseUrl, supabaseAnonKey, auth),
+        fetchWaterEntries(supabaseUrl, supabaseAnonKey, auth),
+        fetchWeighIns(supabaseUrl, supabaseAnonKey, auth),
+      ]);
+      await store.replaceAll(entries);
+      await water.replaceAll(waterRows);
+      await weighIns.replaceAll(weighRows);
+      const profile: Profile = {
+        sex: row.sex!, age_years: row.age_years!, height_cm: row.height_cm!,
+        weight_kg: row.weight_kg!,
+        activity: row.activity as Profile['activity'], goal: row.goal as Profile['goal'],
+      };
+      const targets: Targets = {
+        kcal: row.target_kcal!, protein_g: row.target_protein_g ?? 0,
+        carbs_g: row.target_carbs_g ?? 0, fat_g: row.target_fat_g ?? 0, clamped: false,
+      };
+      const oldestDay = entries.map((e) => e.day).sort()[0];
+      const stored: StoredPlan = {
+        profile, targets, water_l: waterLitersFor(profile.weight_kg), reminder: true,
+        createdAt: oldestDay ? `${oldestDay}T00:00:00.000Z` : row.created_at,
+      };
+      await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
+      setPlan(stored);
+      setStage('today');                       // straight home, history intact
+      bump();
+    } catch {
+      // server unreachable mid-restore: fall back to onboarding rather than
+      // hang; their history hydrates on a later successful sign-in.
+      setStage('goal');
+    }
   };
 
   const comingSoon = () => alert(onb.comingSoonTitle, onb.comingSoonBody); // TODO(B-09): needs Harish's Apple/Google dev accounts
@@ -361,14 +480,35 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   };
 
   const doSignOut = async () => {
+    // RC-1 (D-1): local data belongs to the account that made it. Sign-out
+    // used to leave everything on disk — the next sign-in inherited the
+    // previous user's meals AND pushed their pending rows into the new
+    // account. Flush first; refuse to sign out if data would be lost.
+    await runSync();
+    const pending = store.pendingCount + water.pendingCount + weighIns.pendingCount;
+    if (pending > 0) {
+      alert(pf.signOutBlockedTitle, pf.signOutBlockedBody(pending));
+      return;
+    }
+    await store.clear();
+    await water.clear();
+    await weighIns.clear();
+    await kv.setItem(PROFILE_KEY, '');
+    await kv.setItem(PROFILE_DIRTY_KEY, '');
     await auth.signOut();
+    setPlan(null);
+    setGoal(null);
+    setAbout({ sex: 'female', age: '', height: '', weight: '', activity: null });
     setStage('welcome');
   };
 
   const doDelete = async () => {
     setDeleting(true);
     try {
-      if (auth.session) await deleteAccount(supabaseUrl, supabaseAnonKey, auth);
+      // RC-5 (D-3): server erasure is confirmed FIRST or the flow fails loudly.
+      // The old `if (session)` guard silently skipped the server on a dead
+      // session, wiped local evidence, and told the user everything was erased.
+      await deleteAccount(supabaseUrl, supabaseAnonKey, auth); // throws if unconfirmed
       await store.clear();
       await water.clear();
       await weighIns.clear();
@@ -394,7 +534,8 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
               onEmail={() => setAuthOpen(true)} onRestore={comingSoon} />
           )}
           {stage === 'goal' && (
-            <GoalScreen theme={theme} value={goal} onSelect={setGoal} onContinue={() => setStage('about')} />
+            <GoalScreen theme={theme} value={goal} onSelect={setGoal} onContinue={() => setStage('about')}
+            onCancel={plan ? () => setStage('profile') : undefined} />
           )}
           {stage === 'about' && (
             <AboutYouScreen theme={theme} value={about} onChange={setAbout}
@@ -464,7 +605,19 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
             reminderLabel: plan.reminder ? '9:00 PM' : 'Off',
             unitsLabel: 'kg, ml',
           }}
-          onChangeGoal={() => setStage('goal')}
+          onChangeGoal={() => {
+            // D-8: prefill from stored truth — never blank fields the app
+            // already knows, never a mistyped-weight path to wrong targets.
+            const pr = planRef.current?.profile;
+            if (pr) {
+              setGoal(pr.goal);
+              setAbout({
+                sex: pr.sex, age: String(pr.age_years), height: String(pr.height_cm),
+                weight: String(pr.weight_kg), activity: pr.activity,
+              });
+            }
+            setStage('goal');
+          }}
           onReminders={soon('Reminders')} onUnits={soon('Units')} onHealth={soon('Apple Health')}
           onExport={doExport} onHelp={soon('Help & FAQ')}
           onSignOut={doSignOut}

@@ -41,6 +41,15 @@ export function createWaterRemote(url: string, anonKey: string, ctx: AuthContext
   };
 }
 
+/** RC-5 (D-11): undoing a SYNCED glass must delete it on the server too. */
+export async function deleteWaterEntry(url: string, anonKey: string, ctx: AuthContext, clientId: string): Promise<void> {
+  const res = await authedFetch(ctx, `${url}/rest/v1/water_entries?client_id=eq.${encodeURIComponent(clientId)}`, (s) => ({
+    method: 'DELETE',
+    headers: restHeaders(anonKey, s),
+  }));
+  if (!res.ok) throw new Error(`water delete failed: ${res.status}`);
+}
+
 /** Weigh-in sync (spec 0009). Server PK (user_id, day) → merge-duplicates
     makes a same-day correction a clean UPSERT, replayable safely. */
 export function createWeighInRemote(url: string, anonKey: string, ctx: AuthContext): WeighInRemote {
@@ -82,4 +91,55 @@ export async function deleteAccount(url: string, anonKey: string, ctx: AuthConte
     headers: { Authorization: `Bearer ${s.access_token}`, apikey: anonKey },
   }));
   if (!res.ok) throw new Error(`server delete failed: ${res.status}`);
+}
+
+/* ---------- RC-1 (D-6): server reads for sign-in restore ---------- */
+
+async function getRows(url: string, anonKey: string, ctx: AuthContext, path: string): Promise<Array<Record<string, unknown>>> {
+  const res = await authedFetch(ctx, `${url}/rest/v1/${path}`, (s) => ({
+    method: 'GET', headers: restHeaders(anonKey, s),
+  }));
+  if (!res.ok) throw new Error(`fetch ${path.split('?')[0]} failed: ${res.status}`);
+  return (await res.json()) as Array<Record<string, unknown>>;
+}
+
+export interface ServerProfileRow {
+  sex: 'male' | 'female' | null; age_years: number | null; height_cm: number | null;
+  weight_kg: number | null; activity: string | null; goal: string | null;
+  target_kcal: number | null; target_protein_g: number | null;
+  target_carbs_g: number | null; target_fat_g: number | null; created_at: string;
+}
+
+export async function fetchProfile(url: string, anonKey: string, ctx: AuthContext): Promise<ServerProfileRow | null> {
+  const rows = await getRows(url, anonKey, ctx, `profiles?select=*&id=eq.${ctx.session?.user_id ?? ''}`);
+  return (rows[0] as unknown as ServerProfileRow) ?? null;
+}
+
+export async function fetchLogEntries(url: string, anonKey: string, ctx: AuthContext): Promise<LocalEntry[]> {
+  const rows = await getRows(url, anonKey, ctx, 'log_entries?select=*&order=logged_at.asc');
+  return rows.map((r) => ({
+    client_id: String(r.client_id), day: String(r.day),
+    food_id: r.food_id ? String(r.food_id) : null, food_name: String(r.food_name ?? 'Food'),
+    grams: Number(r.grams ?? 0), kcal: Number(r.kcal ?? 0),
+    protein_g: Number(r.protein_g ?? 0), carbs_g: Number(r.carbs_g ?? 0), fat_g: Number(r.fat_g ?? 0),
+    source: (['scan','describe','search','manual'] as const).includes(r.source as never) ? (r.source as LocalEntry['source']) : 'manual',
+    meal: (['breakfast','lunch','dinner','snack'] as const).includes(r.meal as never) ? (r.meal as LocalEntry['meal']) : 'snack',
+    logged_at: String(r.logged_at ?? ''), synced: true,
+  }));
+}
+
+export async function fetchWaterEntries(url: string, anonKey: string, ctx: AuthContext): Promise<WaterEntry[]> {
+  const rows = await getRows(url, anonKey, ctx, 'water_entries?select=*&order=logged_at.asc');
+  return rows.map((r) => ({
+    client_id: String(r.client_id), day: String(r.day), ml: Number(r.ml ?? 0),
+    logged_at: String(r.logged_at ?? ''), synced: true,
+  }));
+}
+
+export async function fetchWeighIns(url: string, anonKey: string, ctx: AuthContext): Promise<WeighIn[]> {
+  const rows = await getRows(url, anonKey, ctx, 'weigh_ins?select=*&order=day.asc');
+  return rows.map((r) => ({
+    day: String(r.day), kg: Number(r.weight_kg ?? 0),
+    logged_at: String(r.created_at ?? ''), synced: true,
+  }));
 }

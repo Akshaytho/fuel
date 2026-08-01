@@ -67,17 +67,26 @@ export class WaterStore {
     return entry;
   }
 
-  /** Undo the most recent add for a day (mis-taps happen). */
-  async removeLast(day: string): Promise<boolean> {
+  /** Undo the most recent add for a day (mis-taps happen). Returns the
+      removed entry so the caller can mirror the removal to the server —
+      a synced glass deleted only locally silently diverges (QA D-11). */
+  async removeLast(day: string): Promise<WaterEntry | null> {
     this.assertInit();
     for (let i = this.entries.length - 1; i >= 0; i -= 1) {
       if (this.entries[i]!.day === day) {
-        this.entries.splice(i, 1);
+        const [removed] = this.entries.splice(i, 1);
         await this.adapter.save(this.entries);
-        return true;
+        return removed ?? null;
       }
     }
-    return false;
+    return null;
+  }
+
+  /** Put back an entry whose remote deletion failed — local must not lie. */
+  async restore(entry: WaterEntry): Promise<void> {
+    this.assertInit();
+    this.entries.push({ ...entry });
+    await this.adapter.save(this.entries);
   }
 
   mlForDay(day: string): number {
@@ -97,6 +106,14 @@ export class WaterStore {
   async clear(): Promise<void> {
     this.assertInit();
     this.entries = [];
+    await this.adapter.save(this.entries);
+  }
+
+  /** RC-1 (D-6): hydrate from the server on sign-in — a new phone must show
+      the user's real history, not force a fake Day 1. Replaces everything. */
+  async replaceAll(entries: WaterEntry[]): Promise<void> {
+    this.assertInit();
+    this.entries = entries.map((e) => ({ ...e }));
     await this.adapter.save(this.entries);
   }
 

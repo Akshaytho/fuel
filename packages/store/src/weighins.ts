@@ -72,6 +72,14 @@ export class WeighInStore {
     await this.adapter.save(this.entries);
   }
 
+  /** RC-1 (D-6): hydrate from the server on sign-in — a new phone must show
+      the user's real history, not force a fake Day 1. Replaces everything. */
+  async replaceAll(entries: WeighIn[]): Promise<void> {
+    this.assertInit();
+    this.entries = entries.map((e) => ({ ...e }));
+    await this.adapter.save(this.entries);
+  }
+
   get pendingCount(): number {
     this.assertInit();
     return this.entries.filter((e) => !e.synced).length;
