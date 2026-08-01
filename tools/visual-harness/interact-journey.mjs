@@ -232,6 +232,19 @@ await step('weigh-in push ACCEPTED by the server (synced=true only after HTTP ok
     null, { timeout: 15000 },
   );
 });
+await step('spec 0010: Report tab is LIVE; fresh user sees the honest locked state', async () => {
+  await page.getByTestId('tab-report').click();
+  await page.getByText('Your report is almost ready.').waitFor({ timeout: 5000 });
+  await page.getByText(/Log meals on \d+ more day/).waitFor({ timeout: 4000 });
+  await page.getByText(/Weigh in \d+ more day/).waitFor({ timeout: 4000 });
+  // NO fabricated numbers while locked
+  if (await page.getByTestId('report-burn').isVisible().catch(() => false)) {
+    throw new Error('burn card shown without sufficient data');
+  }
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: 'out/j10-report-locked.png' });
+});
+
 await step('back to Today via the tab bar (tap, not URL)', async () => {
   await page.getByTestId('tab-today').click();
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 4000 });

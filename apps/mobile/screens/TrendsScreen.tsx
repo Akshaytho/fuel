@@ -200,7 +200,7 @@ export function TrendsScreen({ theme, vm, onLogWeight, onTab, onLog }: TrendsScr
       </ScrollView>
 
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-        <TabBar theme={theme} activeIndex={1} onTab={onTab} onLog={onLog} soonIndices={[2]} />
+        <TabBar theme={theme} activeIndex={1} onTab={onTab} onLog={onLog} soonIndices={[]} />
       </View>
     </View>
   );

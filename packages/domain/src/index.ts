@@ -5,3 +5,4 @@ export * from './day';
 export * from './meals';
 export * from './streak';
 export * from './trends';
+export * from './report';

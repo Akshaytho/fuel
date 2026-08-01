@@ -5,6 +5,7 @@ import {
   scalePer100g, summarizeConsumed, computeTargets, waterLitersFor, mealForHour, localDayISO,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
+  weeklyReport, lastCompleteWeek, addDays,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
 import { LogStore, WaterStore, WeighInStore, GLASS_ML, normalizeStoredPlan, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
@@ -16,6 +17,8 @@ import {
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { TrendsScreen, type TrendsVM } from './TrendsScreen';
+import { ReportScreen, type ReportVM } from './ReportScreen';
+import { rp } from './reportStrings';
 import { tr } from './trendsStrings';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
 import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, goalToDomain, type AboutYou } from './onboarding';
@@ -53,7 +56,7 @@ const PROFILE_KEY = 'fuel.profile.v1';
 /** RC-5 (D-10): '1' while the server profile row is behind local truth. */
 const PROFILE_DIRTY_KEY = 'fuel.profile.dirty.v1';
 
-type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'profile';
+type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'report' | 'profile';
 
 export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
@@ -319,6 +322,60 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     };
   }, [stage, plan, tick]);
 
+  const reportVM: ReportVM = useMemo(() => {
+    const empty: ReportVM = {
+      report: {
+        weekNumber: 1, weekStart: '', weekEnd: '', loggedDays: 0,
+        loggedFlags: [false, false, false, false, false, false, false],
+        verdict: 'insufficient', deltaKg: null, missing: { loggedDays: 4, weighSpanDays: 5 },
+        measuredTdee: null, formulaTdee: 0, blendedTdee: null, proposedTargets: null, weeklyGoalKg: 0,
+      },
+      rangeLabel: '', raw: [], trend: [],
+    };
+    if (stage !== 'report' || !plan) return empty;
+    const today = todayISO();
+    const entries = store.allEntries();
+    const report = weeklyReport({
+      profile: plan.profile,
+      currentTargets: plan.targets,
+      startDay: localDayISO(new Date(plan.createdAt ?? Date.now())),
+      today,
+      dayKcal: dailyTotals(entries.map((e) => ({ day: e.day, value: e.kcal })), 21, today),
+      weighIns: weighIns.all().map((w) => ({ day: w.day, kg: w.kg })),
+    });
+    const md = (d: string) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+      return m ? new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!))
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).toUpperCase() : d;
+    };
+    // chart: weigh-ins inside the report window
+    const winStart = addDays(report.weekStart, -3);
+    const pts = weighIns.all().map((w) => ({ day: w.day, kg: w.kg }))
+      .filter((p) => daysBetween(winStart, p.day) >= 0 && daysBetween(p.day, addDays(report.weekEnd, 3)) >= 0)
+      .sort((a, b) => daysBetween(b.day, a.day));
+    const span = pts.length > 1 ? daysBetween(pts[0]!.day, pts[pts.length - 1]!.day) : 0;
+    const frac = (d: string) => (span > 0 ? daysBetween(pts[0]!.day, d) / span : 0.5);
+    const sm = smoothWeights(pts);
+    return {
+      report,
+      rangeLabel: report.weekStart ? `${md(report.weekStart)}–${md(report.weekEnd)}` : '',
+      raw: pts.map((p) => ({ x: frac(p.day), y: p.kg })),
+      trend: sm.map((p) => ({ x: frac(p.day), y: p.trendKg })),
+    };
+  }, [stage, plan, tick]);
+
+  const acceptTargets = async () => {
+    const proposed = reportVM.report.proposedTargets;
+    if (!planRef.current || !proposed) return;
+    const stored: StoredPlan = { ...planRef.current, targets: proposed };
+    await kv.setItem(PROFILE_KEY, JSON.stringify(stored));
+    await kv.setItem(PROFILE_DIRTY_KEY, '1');
+    setPlan(stored);
+    bump();
+    alert(rp.accepted, rp.acceptedBody(proposed.kcal.toLocaleString('en-US')));
+    await runSync();
+  };
+
   const logIt = async (grams: number, meal: Meal) => {
     if (!picked) return;
     const per100 = {
@@ -409,12 +466,12 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     } finally { setAuthBusy(false); }
   };
 
-  // Trends is a real destination now (spec 0009); Report stays honest-soon.
+  // All four tabs are real destinations now (spec 0010 closed the last stub).
   const onTab = (i: number) => {
     if (i === 0) { setStage('today'); return; }
     if (i === 1) { setStage('trends'); return; }
-    if (i === 3) { setStage('profile'); return; }
-    alert(str.report, str.tabSoon);
+    if (i === 2) { setStage('report'); return; }
+    setStage('profile');
   };
 
   const saveWeight = async () => {
@@ -603,6 +660,25 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
             </View>
           </Sheet>
         </Modal>
+      </View>
+    );
+  }
+
+  if (stage === 'report' && plan) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <ReportScreen theme={theme} vm={reportVM}
+          onAccept={() => void acceptTargets()}
+          onAdjust={() => {
+            const pr = planRef.current?.profile;
+            if (pr) {
+              setGoal(pr.goal);
+              setAbout({ sex: pr.sex, age: String(pr.age_years), height: String(pr.height_cm), weight: String(pr.weight_kg), activity: pr.activity });
+            }
+            setStage('goal');
+          }}
+          onTab={onTab}
+          onLog={() => { setStage('today'); setSheet('log'); }} />
       </View>
     );
   }
