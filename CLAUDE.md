@@ -5,6 +5,19 @@ Solo founder (Harish) + Claude. Production-grade quality bar. This file is the
 session-independent memory: follow it exactly; when in doubt, it wins over
 your instincts.
 
+## Trust debt (read this before claiming ANYTHING works)
+
+Harish has been told "it works" and then watched it fail on his phone. That
+is betrayal, and it happened. The rule that follows: NEVER report a thing as
+working from reasoning alone. Every claim of "done" must cite the actual
+command run and its actual output — unit tests, the tap-only journey, the
+device-shape harness, a live DB query, or his on-phone run. If something was
+not executed, say "built but not yet verified" in those words. When an error
+is found, fix it in the same session — never log-and-move-on for anything a
+user would hit. Where installed Claude skills genuinely apply (design
+critique, accessibility review, UX copy, dataviz for charts), USE them
+rather than winging it.
+
 ## The workflow (non-negotiable)
 
 Every work session follows the loop in `docs/playbook.md`:

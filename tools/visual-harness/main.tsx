@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { View, Text } from 'react-native';
 import { light } from '@fuel/tokens';
-import type { LocalEntry, StorageAdapter, WaterEntry, WaterStorageAdapter } from '@fuel/store';
+import type { LocalEntry, StorageAdapter, WaterEntry, WaterStorageAdapter, WeighIn, WeighInStorageAdapter } from '@fuel/store';
 import { AppRoot } from '../../apps/mobile/screens/AppRoot';
 
 /* Journey harness (spec 0007 AC1): the REAL AppRoot with web-persistent
@@ -21,6 +21,10 @@ const entryAdapter: StorageAdapter = {
 const waterAdapter: WaterStorageAdapter = {
   async load() { const r = window.localStorage.getItem('water'); return r ? JSON.parse(r) as WaterEntry[] : []; },
   async save(e) { window.localStorage.setItem('water', JSON.stringify(e)); },
+};
+const weighInAdapter: WeighInStorageAdapter = {
+  async load() { const r = window.localStorage.getItem('weighins'); return r ? JSON.parse(r) as WeighIn[] : []; },
+  async save(e) { window.localStorage.setItem('weighins', JSON.stringify(e)); },
 };
 
 function Chrome() {
@@ -41,6 +45,7 @@ function App() {
           kv={kv}
           entryAdapter={entryAdapter}
           waterAdapter={waterAdapter}
+          weighInAdapter={weighInAdapter}
           supabaseUrl={process.env.SUPA_URL ?? ''}
           supabaseAnonKey={process.env.SUPA_ANON ?? ''}
           alert={(t, m) => (window as unknown as { __setAlert: (s: string) => void }).__setAlert(`${t}: ${m}`.slice(0, 60))}

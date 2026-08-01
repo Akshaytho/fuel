@@ -2,6 +2,7 @@
 import { Macros, sumMacros } from '@fuel/domain';
 
 export * from './water';
+export * from './weighins';
 
 export interface LocalEntry extends Macros {
   client_id: string;

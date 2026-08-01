@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Modal, Pressable } from 'react-native';
+import { View, Modal, Pressable, TextInput } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
   scalePer100g, summarizeConsumed, computeTargets, mealForHour, localDayISO,
-  computeStreak, dayNumber, waterLitersFor,
+  computeStreak, dayNumber,
+  smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
-import { LogStore, WaterStore, GLASS_ML, type StorageAdapter, type WaterStorageAdapter } from '@fuel/store';
+import { LogStore, WaterStore, WeighInStore, GLASS_ML, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
 import { createAuth, type KV, type Auth } from '../data/auth';
-import { createRemote, createWaterRemote, upsertProfile, deleteAccount } from '../data/remote';
+import { createRemote, createWaterRemote, createWeighInRemote, upsertProfile, deleteAccount } from '../data/remote';
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
+import { TrendsScreen, type TrendsVM } from './TrendsScreen';
+import { tr } from './trendsStrings';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
 import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, goalToDomain, type AboutYou } from './onboarding';
 import { ProfileScreen } from './ProfileScreen';
@@ -34,6 +37,7 @@ export interface AppRootProps {
   kv: KV;
   entryAdapter: StorageAdapter;
   waterAdapter: WaterStorageAdapter;
+  weighInAdapter: WeighInStorageAdapter;
   supabaseUrl: string;
   supabaseAnonKey: string;
   alert: (title: string, message: string) => void;
@@ -44,9 +48,9 @@ export interface AppRootProps {
 interface StoredPlan { profile: Profile; targets: Targets; water_l: number; reminder: boolean; createdAt?: string }
 const PROFILE_KEY = 'fuel.profile.v1';
 
-type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'profile';
+type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'profile';
 
-export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
+export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
   const store = useMemo(
     () => new LogStore(entryAdapter, createRemote(supabaseUrl, supabaseAnonKey, auth)),
@@ -54,6 +58,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
   );
   const water = useMemo(
     () => new WaterStore(waterAdapter, createWaterRemote(supabaseUrl, supabaseAnonKey, auth)),
+    [],
+  );
+  const weighIns = useMemo(
+    () => new WeighInStore(weighInAdapter, createWeighInRemote(supabaseUrl, supabaseAnonKey, auth)),
     [],
   );
   const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey), []);
@@ -83,12 +91,15 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
   // B-19: a failed push used to vanish into `catch {}` and show the same
   // "Offline" pill as a queued one. Track the real outcome.
   const [syncFailed, setSyncFailed] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
 
   const runSync = async () => {
     try {
       await store.sync();
       await water.sync();
-      setSyncFailed(store.pendingCount > 0 || water.pendingCount > 0);
+      await weighIns.sync();
+      setSyncFailed(store.pendingCount > 0 || water.pendingCount > 0 || weighIns.pendingCount > 0);
     } catch { setSyncFailed(true); }
     bump();
   };
@@ -98,6 +109,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
       const t0 = Date.now();
       await store.init();
       await water.init();
+      await weighIns.init();
       await auth.init();                       // restore session if any
       const raw = await kv.getItem(PROFILE_KEY);
       const returning = !!raw && raw.length > 2;
@@ -161,7 +173,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
     const startDay = localDayISO(new Date(plan.createdAt ?? Date.now()));
     // B-16: streak computed from the real distinct logged days.
     const streak = computeStreak(store.allEntries().map((e) => e.day), day);
-    const pending = store.pendingCount + water.pendingCount;
+    const pending = store.pendingCount + water.pendingCount + weighIns.pendingCount;
     return {
       kind: 'ready',
       dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -185,6 +197,79 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
       coach: entries.length > 0
         ? `Nice — ${Math.max(0, Math.round(summary.remaining.protein_g))} g protein to go.`
         : undefined,
+    };
+  }, [stage, plan, tick]);
+
+  const EMPTY_TRENDS: TrendsVM = {
+    weight: { heroKg: null, deltaKg: null, deltaGood: true, sinceLabel: '', raw: [], trend: [], xLabels: [], slopeKgPerWeek: null },
+    energy: { days: [], target: 0, xLabels: [], avgEaten: null },
+    consistency: { weeks: [], lastWeekHits: 0, loggedPct: 0, anyLogs: false },
+  };
+
+  const trendsVM: TrendsVM = useMemo(() => {
+    // Same guard as the Today vm: during boot the stores are not initialized
+    // yet, and calling them throws (the journey caught exactly this crash).
+    if (stage !== 'trends' || !plan) return EMPTY_TRENDS;
+    const targets = plan.targets;
+    const today = todayISO();
+    const startDay = localDayISO(new Date(plan.createdAt ?? Date.now()));
+    const entries = store.allEntries();
+    const entryDays = entries.map((e) => e.day);
+
+    // weight
+    const points = weighIns.all().map((e) => ({ day: e.day, kg: e.kg }))
+      .sort((a, b) => daysBetween(b.day, a.day));
+    const smoothed = smoothWeights(points);
+    const span = points.length > 1 ? daysBetween(points[0]!.day, points[points.length - 1]!.day) : 0;
+    const frac = (d: string) => (span > 0 ? daysBetween(points[0]!.day, d) / span : 0.5);
+    const first = smoothed[0];
+    const last = smoothed[smoothed.length - 1];
+    const deltaKg = first && last && points.length > 1
+      ? Math.round((last.trendKg - first.trendKg) * 10) / 10 : null;
+    const goal = plan.profile.goal;
+    const deltaGood = deltaKg === null ? true
+      : goal === 'lose' ? deltaKg <= 0 : goal === 'gain' ? deltaKg >= 0 : Math.abs(deltaKg) < 0.5;
+    const monthDay = (d: string) => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+      if (!m) return d;
+      return new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!))
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    };
+
+    // energy
+    const days = dailyTotals(entries.map((e) => ({ day: e.day, value: e.kcal })), 14, today);
+    const logged = days.filter((d) => d.value > 0);
+
+    // consistency
+    const dayProtein = dailyTotals(entries.map((e) => ({ day: e.day, value: e.protein_g })), 56, today);
+    const weeks = proteinDaysByWeek(dayProtein, targets.protein_g, 8, today);
+
+    return {
+      weight: {
+        heroKg: last ? last.trendKg : null,
+        deltaKg,
+        deltaGood,
+        sinceLabel: first ? tr.since(monthDay(first.day)) : '',
+        raw: points.map((p) => ({ x: frac(p.day), y: p.kg })),
+        trend: smoothed.map((p) => ({ x: frac(p.day), y: p.trendKg })),
+        xLabels: points.length > 1
+          ? [monthDay(points[0]!.day), tr.today]
+          : points.length === 1 ? [monthDay(points[0]!.day)] : [],
+        slopeKgPerWeek: weeklySlopeKgPerWeek(points),
+      },
+      energy: {
+        days: days.map((d) => d.value),
+        target: targets.kcal,
+        xLabels: [monthDay(days[0]!.day), monthDay(days[days.length - 1]!.day)],
+        avgEaten: logged.length > 0
+          ? logged.reduce((a, b) => a + b.value, 0) / logged.length : null,
+      },
+      consistency: {
+        weeks: weeks.map((w) => w.hitDays),
+        lastWeekHits: weeks[weeks.length - 1]?.hitDays ?? 0,
+        loggedPct: loggedPercent(entryDays, startDay, today),
+        anyLogs: entries.length > 0,
+      },
     };
   }, [stage, plan, tick]);
 
@@ -239,12 +324,21 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
     } finally { setAuthBusy(false); }
   };
 
-  // B-13: Trends/Report had no handler at all — tapping did nothing, which
-  // reads as a broken app. They now answer honestly (and render dimmed).
+  // Trends is a real destination now (spec 0009); Report stays honest-soon.
   const onTab = (i: number) => {
     if (i === 0) { setStage('today'); return; }
+    if (i === 1) { setStage('trends'); return; }
     if (i === 3) { setStage('profile'); return; }
-    alert(i === 1 ? str.trends : str.report, str.tabSoon);
+    alert(str.report, str.tabSoon);
+  };
+
+  const saveWeight = async () => {
+    const kg = Number(weightInput);
+    if (!Number.isFinite(kg) || kg < 25 || kg > 400) return; // sheet stays open; hint shows range
+    await weighIns.set({ day: todayISO(), kg, logged_at: new Date().toISOString() });
+    setWeightOpen(false); setWeightInput('');
+    bump();
+    await runSync();
   };
 
   const comingSoon = () => alert(onb.comingSoonTitle, onb.comingSoonBody); // TODO(B-09): needs Harish's Apple/Google dev accounts
@@ -253,7 +347,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
   const doExport = () => {
     if (!plan) return;
     const entries = store.allEntries();
-    const csv = buildExportCSV(plan.profile, plan.targets, entries);
+    const csv = buildExportCSV(plan.profile, plan.targets, entries, water.allEntries(), weighIns.all());
     share(`fuel-export-${todayISO()}.csv`, csv);
     alert(pf.exportedTitle, pf.exportedBody(entries.length));
   };
@@ -269,6 +363,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
       if (auth.session) await deleteAccount(supabaseUrl, supabaseAnonKey, auth);
       await store.clear();
       await water.clear();
+      await weighIns.clear();
       await kv.setItem(PROFILE_KEY, '');
       await auth.signOut();
       setPlan(null);
@@ -305,6 +400,42 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, supabaseUrl, su
         <Modal visible={authOpen} transparent animationType="slide" onRequestClose={() => setAuthOpen(false)}>
           <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setAuthOpen(false)} />
           <EmailAuthSheet theme={theme} busy={authBusy} error={authError} onSubmit={emailAuth} />
+        </Modal>
+      </View>
+    );
+  }
+
+  if (stage === 'trends' && plan) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.bg }}>
+        <FadeSlideIn key="trends">
+          <TrendsScreen theme={theme} vm={trendsVM}
+            onLogWeight={() => setWeightOpen(true)}
+            onTab={onTab}
+            onLog={() => { setStage('today'); setSheet('log'); }} />
+        </FadeSlideIn>
+        <Modal visible={weightOpen} transparent animationType="slide" onRequestClose={() => setWeightOpen(false)}>
+          <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setWeightOpen(false)} />
+          <Sheet theme={theme}>
+            <View style={{ gap: 12 }}>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: theme.label }}>{tr.weightSheetTitle}</Text>
+              <TextInput
+                testID="weight-kg-input"
+                value={weightInput}
+                onChangeText={setWeightInput}
+                placeholder="70.5"
+                placeholderTextColor={theme.secondaryLabel}
+                keyboardType="decimal-pad"
+                autoFocus
+                style={{
+                  backgroundColor: theme.bg, borderRadius: 12, padding: 14,
+                  fontSize: 22, fontWeight: '700', color: theme.label,
+                }}
+              />
+              <Text style={{ fontSize: 13, color: theme.secondaryLabel }}>{tr.weightSheetHint}</Text>
+              <CTAButton theme={theme} testID="weight-save" label={tr.weightSave} onPress={() => void saveWeight()} />
+            </View>
+          </Sheet>
         </Modal>
       </View>
     );

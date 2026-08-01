@@ -1,5 +1,5 @@
 /** Supabase remote for LogStore sync + profile upsert (spec 0006/0007). */
-import type { Remote, LocalEntry, WaterRemote, WaterEntry } from '@fuel/store';
+import type { Remote, LocalEntry, WaterRemote, WaterEntry, WeighInRemote, WeighIn } from '@fuel/store';
 import type { Targets, Profile } from '@fuel/domain';
 import type { Session } from './auth';
 import { authedFetch, restHeaders, type AuthContext } from './authedFetch';
@@ -37,6 +37,21 @@ export function createWaterRemote(url: string, anonKey: string, ctx: AuthContext
         }),
       }));
       if (!res.ok) throw new Error(`water push failed: ${res.status}`);
+    },
+  };
+}
+
+/** Weigh-in sync (spec 0009). Server PK (user_id, day) → merge-duplicates
+    makes a same-day correction a clean UPSERT, replayable safely. */
+export function createWeighInRemote(url: string, anonKey: string, ctx: AuthContext): WeighInRemote {
+  return {
+    async push(e: WeighIn) {
+      const res = await authedFetch(ctx, `${url}/rest/v1/weigh_ins?on_conflict=user_id,day`, (s) => ({
+        method: 'POST',
+        headers: restHeaders(anonKey, s, { Prefer: 'resolution=merge-duplicates' }),
+        body: JSON.stringify({ user_id: s.user_id, day: e.day, weight_kg: e.kg }),
+      }));
+      if (!res.ok) throw new Error(`weigh-in push failed: ${res.status}`);
     },
   };
 }

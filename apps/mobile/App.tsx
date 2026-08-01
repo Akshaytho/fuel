@@ -3,7 +3,7 @@ import { SafeAreaView, Alert, Share, useColorScheme } from 'react-native';
 import Storage from 'expo-sqlite/kv-store';
 import { light, dark } from '@fuel/tokens';
 import { AppRoot } from './screens/AppRoot';
-import { sqliteAdapter, waterSqliteAdapter } from './data/sqliteAdapter';
+import { sqliteAdapter, waterSqliteAdapter, weighInSqliteAdapter } from './data/sqliteAdapter';
 
 const kv = {
   getItem: (k: string) => Storage.getItem(k),
@@ -19,6 +19,7 @@ export default function App() {
         kv={kv}
         entryAdapter={sqliteAdapter}
         waterAdapter={waterSqliteAdapter}
+        weighInAdapter={weighInSqliteAdapter}
         supabaseUrl={process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''}
         supabaseAnonKey={process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? ''}
         alert={(t, m) => Alert.alert(t, m)}

@@ -191,6 +191,52 @@ await step('rings SWEEP to value on relaunch (rule 0b), not snap', async () => {
 await page.screenshot({ path: 'out/j5-relaunch.png' });
 
 /* ---------- spec 0008: profile, export, DELETE (the full GDPR arc) ---------- */
+/* ---------- spec 0009: Trends, walked by taps ---------- */
+await step('Trends tab is LIVE: opens with Weight empty state (no weigh-ins yet)', async () => {
+  await page.getByTestId('tab-trends').click();
+  await page.getByText('Your weight trend starts with one number.').waitFor({ timeout: 5000 });
+});
+await page.waitForTimeout(600);            // let the fade land before shooting
+await page.screenshot({ path: 'out/j8-trends-empty.png' });
+await step('log a weigh-in through the sheet → hero + chart appear', async () => {
+  await page.getByTestId('log-weight-cta').click();
+  await page.getByTestId('weight-kg-input').waitFor({ timeout: 4000 });
+  await human(page.getByTestId('weight-kg-input'), '68.2');
+  await page.getByTestId('weight-save').click();
+  const hero = await page.getByTestId('weight-hero').textContent({ timeout: 5000 });
+  if (!hero.includes('68.2')) throw new Error(`hero showed "${hero}"`);
+});
+await page.waitForTimeout(900);            // settle fade + chart sweep
+await page.screenshot({ path: 'out/j8b-weight.png' });
+await step('slope tile is an HONEST dash with one data point, never a fake number', async () => {
+  const slope = (await page.getByTestId('slope-tile').textContent()).trim();
+  if (!slope.startsWith('—')) throw new Error(`slope tile fabricated "${slope}" from one weigh-in`);
+});
+await step('Energy segment: real bar day + target line footnote', async () => {
+  await page.getByText('Energy', { exact: true }).click();
+  await page.getByText('Calories eaten, last 14 days').waitFor({ timeout: 4000 });
+  await page.getByText(/line = your 1,553 kcal target/).waitFor();
+  await page.getByTestId('avg-eaten-tile').waitFor();
+});
+await step('Consistency segment: protein weeks chart from real logs', async () => {
+  await page.getByText('Consistency', { exact: true }).click();
+  await page.getByText('Protein days hit, by week').waitFor({ timeout: 4000 });
+  await page.getByTestId('logged-pct-tile').waitFor();
+});
+await page.waitForTimeout(900);            // settle fade + bar growth
+await page.screenshot({ path: 'out/j9-trends.png' });
+await step('weigh-in push ACCEPTED by the server (synced=true only after HTTP ok)', async () => {
+  await page.waitForFunction(
+    () => JSON.parse(window.localStorage.getItem('weighins') ?? '[]').every((e) => e.synced === true)
+      && JSON.parse(window.localStorage.getItem('weighins') ?? '[]').length > 0,
+    null, { timeout: 15000 },
+  );
+});
+await step('back to Today via the tab bar (tap, not URL)', async () => {
+  await page.getByTestId('tab-today').click();
+  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 4000 });
+});
+
 await step('You tab opens Profile: goal card with real targets', async () => {
   await page.getByText('You', { exact: true }).click();
   await page.getByText('CURRENT GOAL').waitFor({ timeout: 4000 });
@@ -225,7 +271,8 @@ await step('Delete confirmed: server + local erased, back to Welcome', async () 
   await page.getByTestId('confirm-delete').click();
   await page.getByText('The honest way to eat better').waitFor({ timeout: 20000 });
   const left = await page.evaluate(() => (window.localStorage.getItem('fuel.profile.v1') ?? '') + '|'
-    + (window.localStorage.getItem('entries') ?? '') + '|' + (window.localStorage.getItem('water') ?? ''));
+    + (window.localStorage.getItem('entries') ?? '') + '|' + (window.localStorage.getItem('water') ?? '')
+    + '|' + (window.localStorage.getItem('weighins') ?? ''));
   if (left.replace(/[|\[\]]/g, '').length > 0) throw new Error('local remnants: ' + left.slice(0, 60));
 });
 await page.screenshot({ path: 'out/j7-deleted.png' });

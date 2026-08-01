@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
   }
   const uid = userData.user.id;
 
-  for (const table of ["log_entries", "weigh_ins", "entitlements", "profiles"]) {
+  for (const table of ["log_entries", "water_entries", "weigh_ins", "entitlements", "profiles"]) {
     const col = table === "profiles" ? "id" : "user_id";
     const { error } = await admin.from(table).delete().eq(col, uid);
     if (error) return reply(500, { error: `${table}: ${error.message}` });
