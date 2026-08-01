@@ -37,6 +37,13 @@ Every work session follows the loop in `docs/playbook.md`:
    rings/progress animate to their value; stage transitions animate;
    pressables give press feedback. A screen that snaps into place fully
    formed is half-work under rule 0.
+0d. BOTH THEMES, ALWAYS: the app follows the system theme, so dark mode
+   ships to users automatically — it is never "the light one plus later".
+   Every screen is rendered AND contrast-audited in both themes
+   (tools/visual-harness/dark-mode-check.mjs). Color choices are locked at
+   the TOKEN level by packages/tokens/test/contrast.test.ts (WCAG AA: 4.5:1
+   normal text, 3:1 large). iOS system colors do NOT all pass — use the AA
+   variants in the palette, never raw #0A84FF/#8E8E93/#FF375F for text.
 0c. TWO-YEAR LIFE REVIEW (Harish's standing rule): every feature is reviewed
    from a real human's perspective across a simulated ≥2-year lifespan
    before it is called done. That means: time conditions (DST both ways,

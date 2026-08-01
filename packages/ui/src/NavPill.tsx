@@ -42,7 +42,7 @@ export function NavPill({ theme, tabs, activeIndex, onTab, logLabel = '+', onLog
         onPress={onLog}
         style={{
           width: 44, height: 44, borderRadius: radius.pill,
-          backgroundColor: theme.tint, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: theme.ctaBg, alignItems: 'center', justifyContent: 'center',
           marginLeft: space.s1,
         }}
       >

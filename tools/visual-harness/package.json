@@ -17,6 +17,8 @@
   "scripts": {
     "journey": "node interact-journey.mjs",
     "device-shape": "node interact-device-shape.mjs",
-    "e2e": "node interact-journey.mjs && node interact-device-shape.mjs"
+    "e2e": "node interact-journey.mjs && node interact-device-shape.mjs && node dark-mode-check.mjs",
+    "dark": "node dark-mode-check.mjs",
+    "report-rich": "node report-rich-check.mjs"
   }
 }

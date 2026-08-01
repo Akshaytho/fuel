@@ -35,6 +35,7 @@ await build({
   alias: { 'react-native': 'react-native-web' }, plugins: [stubPlugin],
   define: {
     'process.env.NODE_ENV': '"production"', '__DEV__': 'false', 'global': 'window',
+    'process.env.FUEL_THEME': JSON.stringify(process.env.FUEL_THEME ?? 'light'),
     'process.env.SUPA_URL': JSON.stringify(SUPA_URL),
     'process.env.SUPA_ANON': JSON.stringify(SUPA_ANON),
   },

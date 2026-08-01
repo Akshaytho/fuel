@@ -121,10 +121,15 @@ export function MacroPreviewTile({ theme, value, label, color }: {
   );
 }
 
-export function CTAButton({ theme, label, onPress, testID }: { theme: Theme; label: string; onPress: () => void; testID?: string }) {
+export function CTAButton({ theme, label, onPress, testID, bg }: {
+  theme: Theme; label: string; onPress: () => void; testID?: string;
+  /** override the fill (destructive actions pass theme.dangerCta) — must be
+      AA-safe under white, which packages/tokens/test/contrast.test.ts enforces */
+  bg?: string;
+}) {
   return (
     <Pressable testID={testID} onPress={onPress} style={({ pressed }) => [{
-      backgroundColor: theme.tint, borderRadius: radius.card, alignItems: 'center', paddingVertical: space.s4,
+      backgroundColor: bg ?? theme.ctaBg, borderRadius: radius.card, alignItems: 'center', paddingVertical: space.s4,
     }, pressedStyle(pressed)]}>
       <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>{label}</Text>
     </Pressable>

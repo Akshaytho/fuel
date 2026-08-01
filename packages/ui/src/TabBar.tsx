@@ -84,7 +84,7 @@ export function TabBar({ theme, activeIndex, onTab, onLog, soonIndices = [] }: T
       {item(1)}
       <View style={{ flex: 1, alignItems: 'center' }}>
         <Pressable testID="tab-log" onPress={onLog} style={{
-          width: 56, height: 56, borderRadius: radius.pill, backgroundColor: theme.tint,
+          width: 56, height: 56, borderRadius: radius.pill, backgroundColor: theme.ctaBg,
           alignItems: 'center', justifyContent: 'center', marginTop: -space.s4,
           shadowColor: theme.shadow, shadowOpacity: 0.25, shadowRadius: 10,
           shadowOffset: { width: 0, height: 4 }, elevation: 8,

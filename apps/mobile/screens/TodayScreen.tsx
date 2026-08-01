@@ -64,7 +64,7 @@ function Header({ theme, dateLabel, initial, onProfile }: {
         width: 40, height: 40, borderRadius: radius.pill, backgroundColor: theme.avatarBg,
         alignItems: 'center', justifyContent: 'center',
       }, pressedStyle(pressed)]}>
-        <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onTint }}>{initial}</Text>
+        <Text style={{ fontSize: t.headline.size, fontWeight: '700', color: theme.onAvatarBg }}>{initial}</Text>
       </Pressable>
     </View>
   );

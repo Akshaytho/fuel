@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { View, Text } from 'react-native';
-import { light } from '@fuel/tokens';
+import { light, dark } from '@fuel/tokens';
 import type { LocalEntry, StorageAdapter, WaterEntry, WaterStorageAdapter, WeighIn, WeighInStorageAdapter } from '@fuel/store';
 import { normalizeLogEntries, normalizeWaterEntries, normalizeWeighIns } from '@fuel/store';
 import { AppRoot } from '../../apps/mobile/screens/AppRoot';
@@ -34,15 +34,20 @@ function Chrome() {
   return <Text testID="alert" style={{ color: '#fff', fontFamily: 'monospace' }}>alert: {alertText}</Text>;
 }
 
+/** THEME=dark renders the app exactly as a phone with dark mode ON — the
+    theme users get automatically via useColorScheme, previously never
+    rendered by any check. */
+const activeTheme = (process.env.FUEL_THEME ?? 'light') === 'dark' ? dark : light;
+
 function App() {
   // Phone-portrait layout: the frame IS the window (390×844, no desktop
   // chrome around it) so a headed browser at 390-wide reads as a device.
   return (
-    <View style={{ backgroundColor: '#000', minHeight: 890 }}>
+    <View style={{ backgroundColor: activeTheme.bg, minHeight: 890 }}>
       <Chrome />
       <View style={{ width: 390, height: 844, overflow: 'hidden' }}>
         <AppRoot
-          theme={light}
+          theme={activeTheme}
           kv={kv}
           entryAdapter={entryAdapter}
           waterAdapter={waterAdapter}

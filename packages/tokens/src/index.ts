@@ -9,10 +9,24 @@ export const palette = {
   systemGroupedBg: '#F2F2F7',
   card: '#FFFFFF',
   label: '#000000',
+  // iOS ships #8E8E93 / #0A84FF / #FF375F, none of which clear WCAG AA 4.5:1
+  // for normal text on white — Apple's palette predates that floor. These are
+  // the same hues at 75–80% luminance, which pass on BOTH light surfaces.
+  // (The dark theme's own colors already pass; see packages/tokens/test.)
   secondaryLabel: '#8E8E93',
+  secondaryLabelAA: '#6B6B6E',
+  blueText: '#086ACC',
+  pinkText: '#CC2C4C',
+  pinkCta: '#C1233F',           // filled destructive button under white text
+  blueTextDark: '#2F96FF',      // link text on DARK surfaces (AA on card+elevated)
+  onAvatar: '#000000',          // ink on the orange avatar (white was 2.06:1)
   separator: '#E5E5EA',
   tertiaryFill: '#C7C7CC',
   blue: '#0A84FF',
+  // Filled-button blue. #0A84FF under WHITE 17px semibold is 3.65:1 — below
+  // the WCAG AA 4.5:1 floor for normal text, in BOTH themes. Found by the
+  // first dark-mode render check. Same hue, scaled to 85% luminance → 4.85:1.
+  blueCta: '#0970D9',
   green: '#34C759',
   orange: '#FF9F0A',
   purple: '#AF52DE',
@@ -62,6 +76,12 @@ export interface Theme {
   softPurpleBg: string;
   water: string;        // water card accent
   avatarBg: string;
+  /** filled-CTA background — AA-safe under white label text */
+  ctaBg: string;
+  /** filled DESTRUCTIVE background — also AA-safe under white */
+  dangerCta: string;
+  /** ink on the avatar circle */
+  onAvatarBg: string;
 }
 
 export const light: Theme = {
@@ -69,14 +89,14 @@ export const light: Theme = {
   card: palette.card,
   cardElevated: palette.card,
   label: palette.label,
-  secondaryLabel: palette.secondaryLabel,
+  secondaryLabel: palette.secondaryLabelAA,
   separator: palette.separator,
-  tint: palette.blue,
+  tint: palette.blueText,
   ringCalories: palette.green,
   macroProtein: palette.orange,
   macroCarbs: palette.purple,
-  macroFat: palette.blue,
-  danger: palette.pink,
+  macroFat: palette.blueText,
+  danger: palette.pinkText,
   onTint: palette.card,
   shadow: palette.label,
   success: palette.green,
@@ -87,6 +107,9 @@ export const light: Theme = {
   softPurpleBg: palette.softPurple,
   water: palette.blue,
   avatarBg: palette.orange,
+  ctaBg: palette.blueCta,
+  dangerCta: palette.pinkCta,
+  onAvatarBg: palette.onAvatar,
 };
 
 export const dark: Theme = {
@@ -96,11 +119,11 @@ export const dark: Theme = {
   label: palette.darkLabel,
   secondaryLabel: palette.darkSecondaryLabel,
   separator: palette.darkCardElevated,
-  tint: palette.blue,
+  tint: palette.blueTextDark,
   ringCalories: palette.darkGreen,
   macroProtein: palette.orange,
   macroCarbs: palette.darkPurple,
-  macroFat: palette.blue,
+  macroFat: palette.blueTextDark,
   danger: palette.pink,
   onTint: palette.darkLabel,
   shadow: palette.darkBg,
@@ -112,6 +135,9 @@ export const dark: Theme = {
   softPurpleBg: palette.darkSoftPurple,
   water: palette.blue,
   avatarBg: palette.orange,
+  ctaBg: palette.blueCta,
+  dangerCta: palette.pinkCta,
+  onAvatarBg: palette.onAvatar,
 };
 
 /** 4pt spacing scale (matches the design's rhythm). */

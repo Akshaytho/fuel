@@ -73,7 +73,7 @@ export function ProfileScreen(p: ProfileScreenProps) {
       <ScrollView contentContainerStyle={{ padding: space.s4, paddingTop: space.s10, paddingBottom: 120, gap: space.s4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s4 }}>
           <View style={{ width: 56, height: 56, borderRadius: radius.pill, backgroundColor: theme.avatarBg, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: t.title2.size, fontWeight: '700', color: theme.onTint }}>
+            <Text style={{ fontSize: t.title2.size, fontWeight: '700', color: theme.onAvatarBg }}>
               {vm.name.charAt(0).toUpperCase()}
             </Text>
           </View>
