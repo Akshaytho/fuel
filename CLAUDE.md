@@ -37,6 +37,18 @@ Every work session follows the loop in `docs/playbook.md`:
    rings/progress animate to their value; stage transitions animate;
    pressables give press feedback. A screen that snaps into place fully
    formed is half-work under rule 0.
+0c. TWO-YEAR LIFE REVIEW (Harish's standing rule): every feature is reviewed
+   from a real human's perspective across a simulated ≥2-year lifespan
+   before it is called done. That means: time conditions (DST both ways,
+   leap day, year rollover, ISO week 53, month ends, midnight-local logs),
+   human patterns (gaps, relapses, weekends-only, night shifts, travel
+   across timezones, 2-year absences), body extremes (clamped small users,
+   150 kg+ users, goal switches mid-journey), math degeneracies (flat
+   series, negative zero, single points, plateaus), and DATA GROWTH (2
+   years of daily logging — thousands of rows — with perf assertions, and
+   charts that window rather than render everything). The lifespan suites
+   in packages/*/test/lifespan.test.ts are the executable form of this
+   rule; new features must extend them.
 1. Read `CLAUDE.md`, `docs/TASKS.md`, and the relevant `docs/features/*.md` spec.
 2. Do ONE unchecked task from TASKS.md — only that task.
 3. For new features: write/extend the spec FIRST (restatement, UI mapping,

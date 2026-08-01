@@ -57,13 +57,23 @@ describe('LogStore (spec 0006)', () => {
     expect(remote.calls).toHaveLength(2);
   });
 
-  it('remote failure keeps entry pending; later sync completes (no loss)', async () => {
+  it('ONE transient failure is absorbed by the in-pass retry (lifespan rule)', async () => {
     const remote = new FlakyRemote();
     const s = new LogStore(new MemoryAdapter(), remote);
     await s.init();
     await s.add(entry());
-    remote.failNext = 1;
-    expect((await s.sync()).remaining).toBe(1);   // offline — stayed local
+    remote.failNext = 1;                          // single blip
+    expect((await s.sync())).toEqual({ pushed: 1, remaining: 0 });
+    expect(remote.calls).toHaveLength(1);
+  });
+
+  it('a DOWN network (2+ consecutive failures) keeps the entry pending; later sync completes', async () => {
+    const remote = new FlakyRemote();
+    const s = new LogStore(new MemoryAdapter(), remote);
+    await s.init();
+    await s.add(entry());
+    remote.failNext = 2;                          // both attempts die
+    expect((await s.sync()).remaining).toBe(1);   // stayed local, no loss
     expect((await s.sync())).toEqual({ pushed: 1, remaining: 0 }); // back online
     expect(remote.calls).toHaveLength(1);
   });
@@ -75,10 +85,10 @@ describe('LogStore (spec 0006)', () => {
     const a = await s.add(entry({ food_name: 'A' }));
     const b = await s.add(entry({ food_name: 'B' }));
     remote.failNext = 0;
-    // fail on second push
+    // entry B's network is DOWN: both its attempts fail
     let n = 0;
     const orig = remote.push.bind(remote);
-    remote.push = async (e) => { n += 1; if (n === 2) throw new Error('net'); return orig(e); };
+    remote.push = async (e) => { n += 1; if (n >= 2 && n <= 3) throw new Error('net'); return orig(e); };
     expect((await s.sync()).remaining).toBe(1);
     remote.push = orig;
     await s.sync();

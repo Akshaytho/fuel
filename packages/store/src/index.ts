@@ -101,7 +101,14 @@ export class LogStore {
         try {
           await this.remote.push(e);
         } catch {
-          break; // stay pending; retry on next sync
+          // One immediate retry: pushes are idempotent on the server key, so
+          // this is safe, and it turns "15% flaky = 7 entries per app open"
+          // into a queue that actually drains (rule 0c lifespan finding).
+          try {
+            await this.remote.push(e);
+          } catch {
+            break; // twice-failed → network likely down; retry next sync
+          }
         }
         e.synced = true;
         pushed += 1;

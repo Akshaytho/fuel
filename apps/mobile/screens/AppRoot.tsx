@@ -216,8 +216,16 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     const entries = store.allEntries();
     const entryDays = entries.map((e) => e.day);
 
-    // weight
+    // weight — WINDOWED to the last 90 days (rule 0c: a 2-year user has 730
+    // weigh-ins; rendering them all is 1,460 SVG nodes and a flat unreadable
+    // line. The design itself shows a window, and the slope/delta over the
+    // window is the user's CURRENT story, not their ancient history).
+    const WEIGHT_WINDOW_DAYS = 90;
     const points = weighIns.all().map((e) => ({ day: e.day, kg: e.kg }))
+      .filter((p) => {
+        const back = daysBetween(p.day, today);
+        return Number.isFinite(back) && back >= 0 && back < WEIGHT_WINDOW_DAYS;
+      })
       .sort((a, b) => daysBetween(b.day, a.day));
     const smoothed = smoothWeights(points);
     const span = points.length > 1 ? daysBetween(points[0]!.day, points[points.length - 1]!.day) : 0;

@@ -19,7 +19,8 @@ export function smoothWeights(points: readonly WeightPoint[], window = 7): Smoot
   return sorted.map((p) => {
     const neighbors = sorted.filter((q) => Math.abs(daysBetween(p.day, q.day)) <= half);
     const trend = neighbors.reduce((s, q) => s + q.kg, 0) / neighbors.length;
-    return { ...p, trendKg: Math.round(trend * 100) / 100 };
+    const rounded = Math.round(trend * 100) / 100;
+    return { ...p, trendKg: rounded === 0 ? 0 : rounded };
   });
 }
 
@@ -45,7 +46,8 @@ export function weeklySlopeKgPerWeek(points: readonly WeightPoint[]): number | n
     den += (xs[i]! - mx) ** 2;
   }
   if (den === 0) return null;
-  return Math.round((num / den) * 7 * 100) / 100; // per-day slope → per week
+  const perWeek = Math.round((num / den) * 7 * 100) / 100;
+  return perWeek === 0 ? 0 : perWeek; // normalize -0 → 0 ("-0 kg/week" reads as broken)
 }
 
 export interface DayValue { day: string; value: number }
