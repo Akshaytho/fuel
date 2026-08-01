@@ -75,6 +75,24 @@ export class LogStore {
     await this.adapter.save(this.entries);
   }
 
+  /** Remove one entry (mislogged food). Returns it so the caller can mirror
+      the deletion to the server; null if not found. */
+  async remove(client_id: string): Promise<LocalEntry | null> {
+    this.assertInit();
+    const i = this.entries.findIndex((e) => e.client_id === client_id);
+    if (i < 0) return null;
+    const [removed] = this.entries.splice(i, 1);
+    await this.adapter.save(this.entries);
+    return removed ?? null;
+  }
+
+  /** Put back an entry whose remote deletion failed — local must not lie. */
+  async restore(entry: LocalEntry): Promise<void> {
+    this.assertInit();
+    this.entries.push({ ...entry });
+    await this.adapter.save(this.entries);
+  }
+
   /** RC-1 (D-6): hydrate from the server on sign-in — a new phone must show
       the user's real history, not force a fake Day 1. Replaces everything. */
   async replaceAll(entries: LocalEntry[]): Promise<void> {

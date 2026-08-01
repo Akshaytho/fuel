@@ -11,7 +11,7 @@ import { LogStore, WaterStore, WeighInStore, GLASS_ML, normalizeStoredPlan, type
 import { createAuth, type KV, type Auth } from '../data/auth';
 import {
   createRemote, createWaterRemote, createWeighInRemote, upsertProfile, deleteAccount,
-  deleteWaterEntry, fetchProfile, fetchLogEntries, fetchWaterEntries, fetchWeighIns,
+  deleteWaterEntry, deleteLogEntry, fetchProfile, fetchLogEntries, fetchWaterEntries, fetchWeighIns,
 } from '../data/remote';
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
@@ -99,6 +99,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   // "Offline" pill as a queued one. Track the real outcome.
   const [syncFailed, setSyncFailed] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
+  const [entryToRemove, setEntryToRemove] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState('');
 
   const runSync = async () => {
@@ -338,6 +339,22 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     bump();
     await runSync();
   };
+  const removeEntry = async (client_id: string) => {
+    const removed = await store.remove(client_id);
+    setEntryToRemove(null);
+    if (!removed) return;
+    bump();
+    if (removed.synced) {
+      try {
+        await deleteLogEntry(supabaseUrl, supabaseAnonKey, auth, client_id);
+      } catch {
+        await store.restore(removed);          // local must not lie about the cloud
+        bump();
+        alert(str.removeFailedTitle, str.removeFailedBody);
+      }
+    }
+  };
+
   const undoWater = async () => {
     const removed = await water.removeLast(todayISO());
     if (!removed) return;
@@ -654,7 +671,26 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         onProfile={() => setStage('profile')}
         onAddWater={() => void addWater()}
         onUndoWater={() => void undoWater()}
-        onRetrySync={() => void runSync()} />
+        onRetrySync={() => void runSync()}
+        onRemoveEntry={(id) => setEntryToRemove(id)} />
+      <Modal visible={entryToRemove !== null} transparent animationType="slide" onRequestClose={() => setEntryToRemove(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setEntryToRemove(null)} />
+        <Sheet theme={theme}>
+          <View style={{ gap: 12 }}>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: theme.label }}>{str.removeTitle}</Text>
+            <Text style={{ fontSize: 15, color: theme.secondaryLabel }}>
+              {str.removeBody(store.allEntries().find((e) => e.client_id === entryToRemove)?.food_name ?? '')}
+            </Text>
+            <View style={{ backgroundColor: theme.danger, borderRadius: 16 }}>
+              <CTAButton theme={theme} testID="confirm-remove-entry" label={str.removeCta}
+                onPress={() => { if (entryToRemove) void removeEntry(entryToRemove); }} />
+            </View>
+            <Pressable testID="cancel-remove-entry" onPress={() => setEntryToRemove(null)} style={{ alignItems: 'center', padding: 8 }}>
+              <Text style={{ fontSize: 17, fontWeight: '600', color: theme.tint }}>{pf.cancel}</Text>
+            </Pressable>
+          </View>
+        </Sheet>
+      </Modal>
       </FadeSlideIn>
       <Modal visible={sheet !== 'none'} transparent animationType="slide" onRequestClose={() => setSheet('none')}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setSheet('none')} />

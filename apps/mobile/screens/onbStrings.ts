@@ -16,7 +16,7 @@ export const onb = {
   working: 'Working…',
   continueBtn: 'Continue',
   goalTitle: 'What are we working toward?',
-  goalSub: 'Your targets adapt every week from your own logs and weigh-ins — this just sets the starting point.',
+  goalSub: 'Your targets adapt from your logs and weigh-ins — this just sets the starting point.',
   goalLose: 'Lose fat', goalLoseSub: 'Steady deficit, protein protected',
   goalBuild: 'Build muscle', goalBuildSub: 'Lean surplus, high protein',
   goalRecomp: 'Recomp', goalRecompSub: 'Hold weight, trade fat for muscle',

@@ -95,6 +95,27 @@ describe('LogStore (spec 0006)', () => {
     expect(remote.calls).toEqual([a.client_id, b.client_id]);
   });
 
+  it('remove() deletes exactly the named entry and returns it', async () => {
+    const s = new LogStore(new MemoryAdapter());
+    await s.init();
+    const a = await s.add(entry({ food_name: 'Keep' }));
+    const b = await s.add(entry({ food_name: 'Mislogged' }));
+    const removed = await s.remove(b.client_id);
+    expect(removed?.food_name).toBe('Mislogged');
+    expect(s.allEntries().map((e) => e.client_id)).toEqual([a.client_id]);
+    expect(await s.remove('nonexistent')).toBeNull();
+  });
+
+  it('restore() brings back an entry whose server deletion failed', async () => {
+    const s = new LogStore(new MemoryAdapter());
+    await s.init();
+    const a = await s.add(entry({ food_name: 'Oops' }));
+    const removed = await s.remove(a.client_id);
+    await s.restore(removed!);
+    expect(s.allEntries()).toHaveLength(1);
+    expect(s.allEntries()[0]!.food_name).toBe('Oops');
+  });
+
   it('no remote configured → entries simply stay pending', async () => {
     const s = new LogStore(new MemoryAdapter());
     await s.init();

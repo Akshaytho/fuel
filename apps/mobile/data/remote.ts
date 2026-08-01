@@ -41,6 +41,15 @@ export function createWaterRemote(url: string, anonKey: string, ctx: AuthContext
   };
 }
 
+/** Mislogged food: deleting a SYNCED entry must delete it on the server too. */
+export async function deleteLogEntry(url: string, anonKey: string, ctx: AuthContext, clientId: string): Promise<void> {
+  const res = await authedFetch(ctx, `${url}/rest/v1/log_entries?client_id=eq.${encodeURIComponent(clientId)}`, (s) => ({
+    method: 'DELETE',
+    headers: restHeaders(anonKey, s),
+  }));
+  if (!res.ok) throw new Error(`entry delete failed: ${res.status}`);
+}
+
 /** RC-5 (D-11): undoing a SYNCED glass must delete it on the server too. */
 export async function deleteWaterEntry(url: string, anonKey: string, ctx: AuthContext, clientId: string): Promise<void> {
   const res = await authedFetch(ctx, `${url}/rest/v1/water_entries?client_id=eq.${encodeURIComponent(clientId)}`, (s) => ({

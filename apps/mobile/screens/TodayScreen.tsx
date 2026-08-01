@@ -39,6 +39,8 @@ export interface TodayScreenProps {
   onAddWater: () => void;
   onUndoWater: () => void;
   onRetrySync: () => void;
+  /** long-press on a meal row — remove a mislogged entry (with confirm) */
+  onRemoveEntry: (id: string) => void;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -139,7 +141,7 @@ function EmptyNutritionCard({ theme, targets, dayLabel }: { theme: Theme; target
 }
 
 export function TodayScreen({
-  theme, vm, onLog, onScan, onDescribe, onTab, onProfile, onAddWater, onUndoWater, onRetrySync,
+  theme, vm, onLog, onScan, onDescribe, onTab, onProfile, onAddWater, onUndoWater, onRetrySync, onRemoveEntry,
 }: TodayScreenProps) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -226,6 +228,7 @@ export function TodayScreen({
                 {vm.entries.map((e, i) => (
                   <ListRow key={e.id} theme={theme} title={e.title} subtitle={e.subtitle}
                     trailing={e.proteinLabel} trailingColor={theme.macroProtein}
+                    testID={`entry-${e.id}`} onLongPress={() => onRemoveEntry(e.id)}
                     divider={i < vm.entries.length - 1} />
                 ))}
               </Card>
