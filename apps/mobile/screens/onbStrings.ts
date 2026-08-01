@@ -43,7 +43,7 @@ export const onb = {
   kcalPerDay: 'KCAL / DAY',
   protein: 'Protein', carbs: 'Carbs', fat: 'Fat', water: 'Water',
   clampedNote: 'We raised this to a safe minimum of 1,200 kcal — health first.',
-  planExplainer: "These aren't forever numbers. Every Sunday, Fuel compares your logs against your real weight change and recalibrates the plan to your body. The estimate only has to be roughly right.",
+  planExplainer: "These aren't forever numbers. Every time you log your weight, Fuel retunes the whole plan to your real body. The estimate only has to be roughly right.",
   reminderTitle: 'Daily reminder',
   reminderSub: "A nudge at 9 PM if the day's still empty", // TODO(stub): P3 notifications
   startDay1: 'Start Day 1',
