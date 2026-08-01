@@ -10,7 +10,7 @@ import { scalePer100g, type FoodPer100g, type Meal } from '@fuel/domain';
 import { logStr as s } from './logStrings';
 
 /* ---------- shared VMs ---------- */
-export interface QuickFoodVM { id: string; name: string; subtitle: string }
+export interface QuickFoodVM { id: string; name: string; subtitle: string; often?: boolean }
 
 /* ---------- Log sheet (spec 0005 §Log) ---------- */
 export interface LogSheetProps {
@@ -22,7 +22,9 @@ export interface LogSheetProps {
   onDescribe: () => void;  // TODO(stub): P2 AI
   onLabel: () => void;     // TODO(stub): P2 label photo
   onSaved: () => void;     // TODO(stub): backlog saved foods
-  onCopyYesterday: () => void; // TODO(stub): P1-05
+  /** how many items yesterday held — 0 hides the affordance (spec 0011) */
+  yesterdayCount: number;
+  onCopyYesterday: () => void;
   onQuickAdd: (id: string) => void;
 }
 
@@ -59,17 +61,33 @@ export function LogSheet(p: LogSheetProps) {
           <Text style={{ fontSize: t.footnote.size, fontWeight: '600', letterSpacing: 0.8, color: theme.secondaryLabel }}>
             {s.goTos(p.mealLabel)}
           </Text>
-          <Pressable onPress={p.onCopyYesterday}>
-            <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.tint }}>{s.copyYesterday}</Text>
-          </Pressable>
+          {p.yesterdayCount > 0 && (
+            <Pressable testID="copy-yesterday" onPress={p.onCopyYesterday} hitSlop={8}>
+              <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.tint }}>
+                {s.copyYesterdayN(p.yesterdayCount)}
+              </Text>
+            </Pressable>
+          )}
         </View>
-        <Card theme={theme}>
-          {p.goTos.map((f, i) => (
-            <FoodRow key={f.id} theme={theme} title={f.name} subtitle={f.subtitle} addTestID={`quickadd-${f.id}`}
-              onAdd={() => p.onQuickAdd(f.id)} divider={i < p.goTos.length - 1} />
-          ))}
-        </Card>
-        <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel, textAlign: 'center' }}>{s.tapHint}</Text>
+        {p.goTos.length > 0 ? (
+          <>
+            <Card theme={theme}>
+              {p.goTos.map((f, i) => (
+                <FoodRow key={f.id} theme={theme} title={f.name}
+                  subtitle={f.often === true ? `${f.subtitle} · ${s.logOften}` : f.subtitle}
+                  addTestID={`quickadd-${f.id}`}
+                  onAdd={() => p.onQuickAdd(f.id)} divider={i < p.goTos.length - 1} />
+              ))}
+            </Card>
+            <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel, textAlign: 'center' }}>{s.tapHint}</Text>
+          </>
+        ) : (
+          <Card theme={theme}>
+            <Text testID="gotos-empty" style={{ fontSize: t.subhead.size, color: theme.secondaryLabel, textAlign: 'center', paddingVertical: space.s3 }}>
+              {s.goTosEmpty}
+            </Text>
+          </Card>
+        )}
       </View>
     </Sheet>
   );

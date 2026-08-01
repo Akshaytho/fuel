@@ -129,6 +129,12 @@ await page.screenshot({ path: 'out/j4-day1.png' });
 await step('log real food: live search → pick MEAL → portion → rings move', async () => {
   await page.getByTestId('tab-log').click();
   await page.getByText(/YOUR GO-TOS/).waitFor();
+  // spec 0011: a brand-new user has no history — the row says so, it does not
+  // invent a list (and 'Copy yesterday' is absent, since yesterday is empty)
+  await page.getByTestId('gotos-empty').waitFor({ timeout: 4000 });
+  if (await page.getByTestId('copy-yesterday').isVisible().catch(() => false)) {
+    throw new Error('copy-yesterday offered with nothing to copy');
+  }
   await page.locator('input').first().click();
   await page.getByText('Searches your food database').waitFor({ timeout: 4000 });
   await human(page.locator('input').first(), 'banana');
@@ -232,6 +238,33 @@ await step('weigh-in push ACCEPTED by the server (synced=true only after HTTP ok
     null, { timeout: 15000 },
   );
 });
+await step('spec 0011: the logged food becomes a GO-TO; one tap re-logs it', async () => {
+  await page.getByTestId('tab-log').click();
+  await page.getByText(/YOUR GO-TOS/).waitFor({ timeout: 4000 });
+  // the banana logged minutes ago is now the user's go-to — from real history
+  const quick = page.locator('[data-testid^="quickadd-"]').first();
+  await quick.waitFor({ timeout: 4000 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'out/j11-gotos.png' });
+  await quick.click();                                  // ONE TAP re-log
+  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 6000 });
+  // two entries now; calories dropped by the banana again (1,553-89-89 = 1,375)
+  const rows = await page.locator('[data-testid^="entry-"]').count();
+  if (rows !== 2) throw new Error(`expected 2 entries after quick-add, saw ${rows}`);
+  await page.getByText('1,375').first().waitFor({ timeout: 5000 });
+});
+await step('spec 0011: the quick-added entry reaches the server too', async () => {
+  await page.waitForFunction(
+    () => JSON.parse(window.localStorage.getItem('entries') ?? '[]').length === 2
+      && JSON.parse(window.localStorage.getItem('entries') ?? '[]').every((e) => e.synced === true),
+    null, { timeout: 15000 });
+});
+await step('spec 0011: remove the duplicate again (cleanup keeps later steps exact)', async () => {
+  await page.locator('[data-testid^="entry-"]').last().click({ delay: 600 });
+  await page.getByTestId('confirm-remove-entry').click();
+  await page.getByText('1,464').first().waitFor({ timeout: 5000 });
+});
+
 await step('spec 0010: Report tab is LIVE; fresh user sees the honest locked state', async () => {
   await page.getByTestId('tab-report').click();
   await page.getByText('Your report is almost ready.').waitFor({ timeout: 5000 });

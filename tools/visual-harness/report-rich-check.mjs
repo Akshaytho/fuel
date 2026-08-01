@@ -48,6 +48,11 @@ for (let i = 0; i < 7; i += 1) {
   const d = day(lastMonOff + i);
   entryRows.push(`('${crypto.randomUUID()}','${UID}','${d}','Seeded meal',300,1500,90,150,50,'manual','lunch','${d}T12:00:00Z')`);
 }
+// spec 0011: two items YESTERDAY, so Copy-yesterday has something real to copy
+const yesterdayRows = [
+  `('${crypto.randomUUID()}','${UID}','${day(-1)}','Yesterday oats',80,300,10,50,6,'manual','breakfast','${day(-1)}T08:00:00Z')`,
+  `('${crypto.randomUUID()}','${UID}','${day(-1)}','Yesterday dal',200,340,18,40,9,'manual','dinner','${day(-1)}T20:00:00Z')`,
+];
 const weighRows = [
   `('${UID}','${day(lastMonOff - 1)}',69.0)`,
   `('${UID}','${day(lastMonOff + 3)}',68.6)`,
@@ -58,7 +63,7 @@ sql(`
     activity='light', goal='lose', target_kcal=1553, target_protein_g=135.9,
     target_carbs_g=135.9, target_fat_g=51.8 where id='${UID}';
   insert into public.log_entries (client_id,user_id,day,food_name,grams,kcal,protein_g,carbs_g,fat_g,source,meal,logged_at)
-    values ${entryRows.join(',')};
+    values ${entryRows.concat(yesterdayRows).join(',')};
   insert into public.weigh_ins (user_id,day,weight_kg) values ${weighRows.join(',')};
 `);
 const seeded = sql(`select
@@ -148,6 +153,37 @@ await step('DB CHECK: profiles.target_kcal EQUALS the number that was on screen'
   if (Number(row.target_kcal) !== screenKcal) {
     throw new Error(`server ${row.target_kcal} ≠ screen ${screenKcal}`);
   }
+});
+
+await step('spec 0011: go-tos are the seeded history, ranked — not invented', async () => {
+  await page.getByTestId('tab-log').click();
+  await page.getByText(/YOUR GO-TOS/).waitFor({ timeout: 5000 });
+  const names = await page.locator('[data-testid^="quickadd-"]').count();
+  if (names === 0) throw new Error('no go-tos despite seeded entries');
+  console.log('GOTOS rows=' + names);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'out/rr-03-gotos-from-history.png' });
+});
+
+await step('spec 0011: Copy yesterday copies EXACTLY yesterday (2 items) to today', async () => {
+  const label = (await page.getByTestId('copy-yesterday').textContent()).trim();
+  console.log('COPY LABEL ' + label);
+  if (!label.endsWith('2')) throw new Error(`copy label "${label}" — expected count 2`);
+  const before = sql(`select count(*)::text as n from public.log_entries
+    where user_id='${UID}' and day = current_date`)[0].n;
+  await page.getByTestId('copy-yesterday').click();
+  await page.getByText("TODAY'S MEALS").waitFor({ timeout: 6000 });
+  await page.waitForTimeout(2000);
+  const after = sql(`select count(*)::text as n, string_agg(food_name, ' | ' order by logged_at) as names
+    from public.log_entries where user_id='${UID}' and day = current_date`)[0];
+  console.log(`TODAY rows ${before} -> ${after.n} [${after.names}]`);
+  if (Number(after.n) !== Number(before) + 2) {
+    throw new Error(`copy created ${Number(after.n) - Number(before)} rows, expected 2`);
+  }
+  if (!String(after.names).includes('Yesterday oats') || !String(after.names).includes('Yesterday dal')) {
+    throw new Error('copied rows are not yesterday items: ' + after.names);
+  }
+  await page.screenshot({ path: 'out/rr-04-copied-yesterday.png' });
 });
 
 await step('cleanup: delete seeded account', async () => {

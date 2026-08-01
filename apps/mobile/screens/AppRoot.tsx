@@ -5,7 +5,7 @@ import {
   scalePer100g, summarizeConsumed, computeTargets, waterLitersFor, mealForHour, localDayISO,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
-  weeklyReport, lastCompleteWeek, addDays,
+  weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey,
   type Targets, type Meal, type Profile,
 } from '@fuel/domain';
 import { LogStore, WaterStore, WeighInStore, GLASS_ML, normalizeStoredPlan, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
@@ -21,6 +21,7 @@ import { ReportScreen, type ReportVM } from './ReportScreen';
 import { rp } from './reportStrings';
 import { tr } from './trendsStrings';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
+import { logStr } from './logStrings';
 import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, goalToDomain, type AboutYou } from './onboarding';
 import { ProfileScreen } from './ProfileScreen';
 import { buildExportCSV } from '../data/exportData';
@@ -429,6 +430,51 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     }
   };
 
+  /** spec 0011: the user's OWN most-logged foods for the current meal. */
+  const currentMeal = (): Meal => mealForHour(new Date().getHours());
+  const goToItems = useMemo(() => {
+    if (!plan) return [];
+    return goTosForMeal(store.allEntries(), currentMeal(), todayISO());
+  }, [plan, tick, sheet]);
+  const yesterdayItems = useMemo(() => {
+    if (!plan) return [];
+    return yesterdaysItems(store.allEntries(), todayISO());
+  }, [plan, tick, sheet]);
+
+  /** One tap = log it again exactly as last time (grams AND macros come from
+      that most-recent entry, so it works offline and needs no re-fetch). */
+  const quickAdd = async (key: string) => {
+    const item = goToItems.find((g) => foodKey(g) === key);
+    if (!item) return;
+    await store.add({
+      day: todayISO(), food_id: item.food_id, food_name: item.food_name,
+      grams: item.grams, kcal: item.kcal, protein_g: item.protein_g,
+      carbs_g: item.carbs_g, fat_g: item.fat_g,
+      source: 'manual', meal: currentMeal(), logged_at: new Date().toISOString(),
+    });
+    setSheet('none');
+    bump();
+    alert(logStr.quickAddedTitle, logStr.quickAddedBody(item.food_name, Math.round(item.kcal)));
+    await runSync();
+  };
+
+  const copyYesterday = async () => {
+    const items = yesterdayItems;
+    if (items.length === 0) return;
+    for (const it of items) {
+      await store.add({
+        day: todayISO(), food_id: it.food_id, food_name: it.food_name,
+        grams: it.grams, kcal: it.kcal, protein_g: it.protein_g,
+        carbs_g: it.carbs_g, fat_g: it.fat_g,
+        source: 'manual', meal: it.meal, logged_at: new Date().toISOString(),
+      });
+    }
+    setSheet('none');
+    bump();
+    alert(logStr.copiedTitle, logStr.copiedBody(items.length));
+    await runSync();
+  };
+
   const emailAuth = async (email: string, password: string) => {
     setAuthBusy(true); setAuthError(undefined);
     try {
@@ -773,10 +819,18 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         <View>
           {sheet === 'log' && (
             <LogSheet theme={theme} mealLabel={cap(mealForHour(new Date().getHours()))}
-              goTos={[]}
+              goTos={goToItems.map((g) => ({
+                id: foodKey(g),
+                name: g.food_name,
+                subtitle: `${Math.round(g.grams)} g · ${Math.round(g.kcal)} kcal`,
+                often: g.count >= 3,
+              }))}
+              yesterdayCount={yesterdayItems.length}
               onSearchFocus={() => setSheet('search')}
               onScan={soon('Scan')} onDescribe={soon('Describe')} onLabel={soon('Label')}
-              onSaved={soon('Saved')} onCopyYesterday={soon('Copy yesterday')} onQuickAdd={() => {}} />
+              onSaved={soon('Saved')}
+              onCopyYesterday={() => void copyYesterday()}
+              onQuickAdd={(id) => void quickAdd(id)} />
           )}
           {sheet === 'search' && (
             <View style={{ height: '92%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
