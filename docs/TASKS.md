@@ -136,3 +136,29 @@ Add newly discovered work as new boxes — never do it silently.
 - 2026-08-01 · session 6 (cloud, autonomous — Harish away, full trust granted) · WEEKLY REPORT SHIPPED (spec 0010, design 4e — the LAST stub tab is now live; every tab is a real destination). The flagship: ADAPTIVE TDEE from energy balance — measuredBurn = avgIntake − Δtrend×7700/span, gated honestly (≥4 logged days + weigh-ins ≥5 days apart, else a locked state naming EXACTLY what to log), blended ±30% vs formula so one crazy week can't wreck targets, proposals via the same safety engine (shared constants — floors/caps/splits, not duplicated). Verdict bands per goal, factual copy, zero shame. Accept-new-targets persists + dirty-syncs; Adjust routes to the prefilled goal flow. 11 new domain tests (112 total) — the hand-computed energy-balance test CAUGHT a real precision bug on first run (delta was rounded BEFORE the physics, costing up to ~385 kcal; JS −0.25 half-up rounding made it visible) — fixed at source, raw-for-math/round-at-display. Journey +1 step (locked state, no fabricated numbers while gated; 32 steps). NEW report-rich-check.mjs: server-seeded 2-week user (fixtures live server-side — the legitimate home of a returning user's history), signed in via taps, restore hydrates, report shows "You're on pace." + burn 1,943→2,174, Accept → screen 1,739 == Today == profiles.target_kcal in Postgres (script fails on any inequality), account cleaned. All green: verify, journey 32/32, device-shape 8/8, report-rich 5/5.
 - 2026-08-01 · session 6b (cloud, autonomous) · GO-TOS + COPY YESTERDAY shipped (spec 0011) — two Phase-1 dead promises made real, both from the user's OWN history (no curated lists, data-in-DB rule). Domain gotos.ts: meal-aware ranking (this meal first, then frequency, then recency), 60-day window, returns the MOST RECENT logging so one tap reproduces exactly what they ate last time (works offline, no re-fetch); yesterdaysItems() for copying. 11 tests (123 domain total). UI: go-tos row shows real rows with "you log this often" earned at count≥3, an honest empty line for new users, and Copy-yesterday HIDDEN when yesterday is empty (no dead affordance). PROOF: journey 35 steps — fresh user sees the empty-state and NO copy affordance; after logging a banana it becomes a go-to; ONE TAP re-logs it (2 entries, calories 1,553−89−89=1,375, both synced); duplicate then removed to keep later assertions exact. report-rich-check extended: seeded history yields 3 ranked go-tos, "Copy yesterday · 2" copies exactly 2 rows into today verified in Postgres by name. Device-shape 8/8, verify green.
 - 2026-08-01 · session 6c (cloud, autonomous) · DARK MODE VERIFIED FOR THE FIRST TIME + WCAG AA ENFORCED AT THE TOKEN LEVEL. Risk found by asking "what ships that nothing has ever rendered?": App.tsx picks the dark theme from useColorScheme, so a dark-mode phone gets it on FIRST LAUNCH — and no check had ever drawn a single dark pixel. Built tools/visual-harness/dark-mode-check.mjs (FUEL_THEME switch in the harness build): walks 13 screens by taps, samples the painted surface luminance, and audits EVERY visible text node against the background actually painted behind it. It found 5 real contrast failures — FOUR of which were also broken in LIGHT mode, i.e. shipping to everyone: filled CTAs (white on #0A84FF = 3.65:1), light secondary text (2.92:1), light link text (3.27:1), light danger text (3.52:1), and the avatar initial (white on orange = 2.06:1, both themes). Root cause: iOS system colors predate WCAG AA and do not pass for normal text. Fix: AA variants in the palette (ctaBg #0970D9, secondaryLabelAA #6B6B6E, blueText #086ACC, pinkText #CC2C4C, blueTextDark #2F96FF for dark surfaces, black avatar ink, dangerCta #C1233F) + CTAButton gained an explicit bg so destructive actions stay red. 16 token-level contrast tests (new @fuel/tokens suite) make the whole class unshippable. Emoji nodes excluded from the audit with a comment (they paint their own colors; CSS color does not apply). Rule 0d added to CLAUDE.md. All green: verify, dark 13/13, journey 35/35, device-shape 8/8, report-rich 6/6.
+
+## World-class gap closure (docs/research/0002) — 2026-08-02
+
+- [x] W-01 Motion may never gate visibility; Reduce Motion honored (motion-resilience-check)
+- [x] W-02 Over-target day gives perspective, not applause (five-days D3)
+- [x] W-03 Target-hit celebration, design 6a (five-days D5)
+- [x] W-04 Week at a glance on Today (week strip)
+- [x] W-05 Comeback: a returning user is remembered, not reset
+- [x] W-06 Partial days no longer corrupt the adaptive TDEE (spec 0012)
+- [x] W-07 Earned rest days: a streak survives one missed day (spec 0013)
+- [x] W-08 Nothing turns red for a rounding error (OVER_TOLERANCE)
+- [x] W-09 Meals you repeat: the friction gradient inverted (spec 0014)
+
+### Still open, and why
+
+- [ ] W-10 Fibre as a first-class nutrient. Needs a `fiber_g_per_100g` column
+      on `public.foods` AND a source that populates it. Blocked with B-04 on a
+      valid USDA key — only ~600 A–B foods are seeded today.
+- [ ] W-11 Food-data provenance + a Cronometer-style "data quality" line, so a
+      zero means "not reported" rather than "you ate none". Cheap once W-10
+      lands; pointless before it.
+- [ ] W-12 Uncertainty ranges on estimated entries. The NIH found photo apps
+      underestimate by 250–345 kcal/meal; when Phase 2 describe/scan ships it
+      must show a RANGE. Blocked on Phase 2 (needs a fresh Anthropic key, B-06).
+- [ ] W-13 Apple Health / Health Connect, home-screen widgets, reminders.
+      All table stakes, all need a native device build — blocked on P0-08.
