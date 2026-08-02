@@ -6,7 +6,8 @@ import {
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
   weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey,
-  type Targets, type Meal, type Profile,
+  weekAtAGlance, dayNote, comebackNote, celebrationFor,
+  type Targets, type Meal, type Profile, type Celebration,
 } from '@fuel/domain';
 import { LogStore, WaterStore, WeighInStore, GLASS_ML, normalizeStoredPlan, type StorageAdapter, type WaterStorageAdapter, type WeighInStorageAdapter } from '@fuel/store';
 import { createAuth, type KV, type Auth } from '../data/auth';
@@ -56,6 +57,8 @@ interface StoredPlan { profile: Profile; targets: Targets; water_l: number; remi
 const PROFILE_KEY = 'fuel.profile.v1';
 /** RC-5 (D-10): '1' while the server profile row is behind local truth. */
 const PROFILE_DIRTY_KEY = 'fuel.profile.dirty.v1';
+/** Design 6a: the celebration shows ONCE per day. This remembers which day. */
+const CELEBRATED_KEY = 'fuel.celebrated.v1';
 
 type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'report' | 'profile';
 
@@ -105,6 +108,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   const [weightOpen, setWeightOpen] = useState(false);
   const [entryToRemove, setEntryToRemove] = useState<string | null>(null);
   const [weightInput, setWeightInput] = useState('');
+  /** local day already celebrated ('' = none). Loaded at boot, so killing and
+      reopening the app does NOT replay the celebration. */
+  const [celebratedDay, setCelebratedDay] = useState('');
+  const [celebrationSeen, setCelebrationSeen] = useState(false);
 
   const runSync = async () => {
     try {
@@ -124,6 +131,15 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     bump();
   };
 
+  /** Design 6a: once dismissed (or auto-dismissed at 3 s) it does not return
+   *  today — including after the app is killed and reopened. */
+  const dismissCelebration = async () => {
+    setCelebrationSeen(true);
+    const day = todayISO();
+    setCelebratedDay(day);
+    try { await kv.setItem(CELEBRATED_KEY, day); } catch { /* best effort */ }
+  };
+
   useEffect(() => {
     (async () => {
       const t0 = Date.now();
@@ -135,6 +151,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       // its start date backfilled from the OLDEST entry; corruption → null →
       // onboarding. Boot can no longer crash or hang on bad bytes.
       const oldest = store.allEntries().map((e) => e.day).sort()[0];
+      setCelebratedDay((await kv.getItem(CELEBRATED_KEY)) ?? '');
       const parsed = normalizeStoredPlan(await kv.getItem(PROFILE_KEY), oldest);
       const returning = parsed !== null;
       if (parsed) setPlan(parsed);
@@ -211,6 +228,23 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     // B-16: streak computed from the real distinct logged days.
     const streak = computeStreak(store.allEntries().map((e) => e.day), day);
     const pending = store.pendingCount + water.pendingCount + weighIns.pendingCount;
+
+    // Week at a glance + the honest line under the rings + the two moments
+    // the five-day simulation proved were missing. All of it is pure domain
+    // logic (packages/domain/src/narrative.ts) so the tone is testable.
+    const allEntries = store.allEntries();
+    const glance = weekAtAGlance(
+      allEntries.map((e) => ({ day: e.day, kcal: e.kcal })), day, targets.kcal);
+    const note = dayNote({ summary, targets, week: glance });
+    const comeback = entries.length === 0
+      ? comebackNote(allEntries.map((e) => e.day), day, streak)
+      : null;
+    // Once per day, and never again after it has been dismissed this session.
+    const celebration: Celebration | null =
+      celebratedDay === day || celebrationSeen
+        ? null
+        : celebrationFor({ summary, targets, streak, hourOfDay: new Date().getHours() });
+
     return {
       kind: 'ready',
       dateLabel: new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -231,11 +265,20 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       streak,
       // B-16: the actual litres this user logged today (was always 0).
       water: { liters: water.litersForDay(day), goalLiters: plan.water_l },
-      coach: entries.length > 0
-        ? `Nice — ${Math.max(0, Math.round(summary.remaining.protein_g))} g protein to go.`
-        : undefined,
+      // The line under the rings now reads the WHOLE day and the week behind
+      // it. It used to be an inline template literal that said "Nice — 0 g
+      // protein to go." on a day that ran 2,067 kcal over (five-days sim,
+      // day 3). Tone is domain logic now, and it is unit-tested.
+      coach: note === null ? undefined : { text: note.text, tone: note.tone },
+      week: {
+        days: glance.slots.map((s) => ({ day: s.day, letter: s.letter, state: s.state, onTarget: s.onTarget })),
+        summary: glance.summary,
+        footnote: glance.avgKcal === null ? undefined : str.weekAvg(glance.avgKcal),
+      },
+      comeback: comeback ?? undefined,
+      celebration: celebration ?? undefined,
     };
-  }, [stage, plan, tick]);
+  }, [stage, plan, tick, celebratedDay, celebrationSeen]);
 
   const EMPTY_TRENDS: TrendsVM = {
     weight: { heroKg: null, deltaKg: null, deltaGood: true, sinceLabel: '', raw: [], trend: [], xLabels: [], slopeKgPerWeek: null },
@@ -794,7 +837,9 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         onAddWater={() => void addWater()}
         onUndoWater={() => void undoWater()}
         onRetrySync={() => void runSync()}
-        onRemoveEntry={(id) => setEntryToRemove(id)} />
+        onRemoveEntry={(id) => setEntryToRemove(id)}
+        onOpenTrends={() => setStage('trends')}
+        onDismissCelebration={() => { void dismissCelebration(); }} />
       <Modal visible={entryToRemove !== null} transparent animationType="slide" onRequestClose={() => setEntryToRemove(null)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setEntryToRemove(null)} />
         <Sheet theme={theme}>

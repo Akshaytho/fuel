@@ -28,11 +28,26 @@ export function StatCard({ theme, title, accessory, value, valueSuffix, testID }
   );
 }
 
-/** Green coaching strip under the rings. */
-export function CoachStrip({ theme, text }: { theme: Theme; text: string }) {
+/**
+ * The strip under the rings. TONE IS LOAD-BEARING: this used to be green and
+ * only green, which is how "Nice — 0 g protein to go." ended up celebrating a
+ * day that ran 2,067 kcal over. `perspective` is the neutral surface used when
+ * the honest thing to say is a fact, not praise.
+ */
+export type CoachTone = 'neutral' | 'good' | 'perspective';
+export function CoachStrip({ theme, text, tone = 'good', testID }: {
+  theme: Theme; text: string; tone?: CoachTone; testID?: string;
+}) {
+  const praise = tone === 'good';
   return (
-    <View style={{ backgroundColor: theme.successBg, borderRadius: radius.md, paddingVertical: space.s3, paddingHorizontal: space.s4 }}>
-      <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.onSuccessBg }}>{text}</Text>
+    <View testID={testID} style={{
+      backgroundColor: praise ? theme.successBg : theme.infoBg,
+      borderRadius: radius.md, paddingVertical: space.s3, paddingHorizontal: space.s4,
+    }}>
+      <Text style={{
+        fontSize: t.subhead.size, fontWeight: '600',
+        color: praise ? theme.onSuccessBg : theme.onInfoBg,
+      }}>{text}</Text>
     </View>
   );
 }

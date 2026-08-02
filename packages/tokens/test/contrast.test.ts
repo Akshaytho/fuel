@@ -62,4 +62,19 @@ describe.each(themes)('%s theme meets WCAG AA', (_name, th) => {
   it('danger text on card >= 4.5:1 (destructive rows must be readable)', () => {
     expect(contrast(th.danger, th.card)).toBeGreaterThanOrEqual(4.5);
   });
+
+  it('perspective strip text on its own background >= 4.5:1', () => {
+    expect(contrast(th.onInfoBg, th.infoBg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('the perspective strip is visibly distinct from the page behind it', () => {
+    // A neutral strip that matches the page background is an invisible strip.
+    expect(contrast(th.infoBg, th.bg)).toBeGreaterThan(1.03);
+  });
+
+  it('week-strip dots read against the card they sit on >= 3:1', () => {
+    // Non-text graphics floor (WCAG 1.4.11) — these dots ARE the information.
+    expect(contrast(th.successGraphic, th.card)).toBeGreaterThanOrEqual(3);
+    expect(contrast(th.secondaryLabel, th.card)).toBeGreaterThanOrEqual(3);
+  });
 });

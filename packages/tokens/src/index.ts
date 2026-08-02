@@ -49,6 +49,13 @@ export const palette = {
   darkLabel: '#FFFFFF',
   darkSecondaryLabel: '#98989F',
   darkGreen: '#30D158',
+  // Neutral "perspective" surface: the strip that tells a person their week is
+  // still fine after an over-target day. Deliberately NOT green (that would
+  // congratulate a blowout) and NOT red (that would scold one).
+  neutralFill: '#E8E8ED',
+  onNeutralFill: '#3C3C43',
+  darkNeutralFill: '#2C2C2E',
+  onDarkNeutralFill: '#EBEBF0',
   darkPurple: '#BF5AF2',
 } as const;
 
@@ -82,6 +89,18 @@ export interface Theme {
   dangerCta: string;
   /** ink on the avatar circle */
   onAvatarBg: string;
+  /** neutral strip for factual perspective (neither praise nor blame) */
+  infoBg: string;
+  onInfoBg: string;
+  /**
+   * Green for SMALL non-text graphics that carry information on their own —
+   * the week-strip dots above all. iOS #34C759 is 2.22:1 on a white card,
+   * under the WCAG 1.4.11 3:1 floor for non-text content. The rings keep the
+   * system green because every ring is duplicated verbatim by the number
+   * printed beside it (1.4.11 exempts redundant presentation); a week dot has
+   * no such text twin, so it must carry its own contrast.
+   */
+  successGraphic: string;
 }
 
 export const light: Theme = {
@@ -110,6 +129,9 @@ export const light: Theme = {
   ctaBg: palette.blueCta,
   dangerCta: palette.pinkCta,
   onAvatarBg: palette.onAvatar,
+  infoBg: palette.neutralFill,
+  onInfoBg: palette.onNeutralFill,
+  successGraphic: palette.greenDeep,
 };
 
 export const dark: Theme = {
@@ -138,6 +160,9 @@ export const dark: Theme = {
   ctaBg: palette.blueCta,
   dangerCta: palette.pinkCta,
   onAvatarBg: palette.onAvatar,
+  infoBg: palette.darkNeutralFill,
+  onInfoBg: palette.onDarkNeutralFill,
+  successGraphic: palette.darkGreen,
 };
 
 /** 4pt spacing scale (matches the design's rhythm). */

@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
-import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon, pressedStyle } from '@fuel/ui';
-import type { DaySummary, Targets } from '@fuel/domain';
+import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon, pressedStyle,
+  WeekStrip, ComebackCard, CelebrationOverlay, type WeekStripDay, type CoachTone } from '@fuel/ui';
+import type { DaySummary, Targets, Comeback, Celebration } from '@fuel/domain';
 import { str } from './strings';
 
 /** Spec 0004 rev B — matches production "Summary" design (turn-4) exactly. */
@@ -25,7 +26,15 @@ export type TodayVM =
       streak: { current: number; longest: number; isLongest: boolean; loggedToday: boolean };
       /** B-16: real logged water; liters is the actual sum, never a stub 0 */
       water: { liters: number; goalLiters: number };
-      coach?: string | undefined;   // green strip message; omit to hide
+      /** the line under the rings — TONE included, because the same words in
+          green vs neutral are two different messages (see CoachStrip) */
+      coach?: { text: string; tone: CoachTone } | undefined;
+      /** 7-dot Monday-first week; answers "how many days did I log this week" */
+      week: { days: WeekStripDay[]; summary: string; footnote?: string | undefined };
+      /** set when a user with history returns after a gap — replaces first-run copy */
+      comeback?: Comeback | undefined;
+      /** design 6a: set on the day this user's targets land, once per day */
+      celebration?: Celebration | undefined;
     };
 
 export interface TodayScreenProps {
@@ -41,6 +50,9 @@ export interface TodayScreenProps {
   onRetrySync: () => void;
   /** long-press on a meal row — remove a mislogged entry (with confirm) */
   onRemoveEntry: (id: string) => void;
+  onDismissCelebration: () => void;
+  /** the week strip is a shortcut into the fuller picture */
+  onOpenTrends: () => void;
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
@@ -115,7 +127,9 @@ function NutritionCard({ theme, targets, summary, statusLabel, statusColor }: {
   );
 }
 
-function EmptyNutritionCard({ theme, targets, dayLabel }: { theme: Theme; targets: Targets; dayLabel: string }) {
+function EmptyNutritionCard({ theme, targets, dayLabel, returning }: {
+  theme: Theme; targets: Targets; dayLabel: string; returning: boolean;
+}) {
   return (
     <View style={{ backgroundColor: theme.card, borderRadius: radius.card, padding: space.s4, gap: space.s4 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -131,9 +145,11 @@ function EmptyNutritionCard({ theme, targets, dayLabel }: { theme: Theme; target
         </TripleRing>
         <View style={{ flex: 1, gap: space.s2 }}>
           <Text style={{ fontSize: t.headline.size, fontWeight: t.headline.weight, color: theme.label }}>
-            {str.emptyHeadline}
+            {returning ? str.emptyHeadlineReturning : str.emptyHeadline}
           </Text>
-          <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{str.emptyHint}</Text>
+          <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>
+            {returning ? str.emptyHintReturning : str.emptyHint}
+          </Text>
         </View>
       </View>
     </View>
@@ -142,7 +158,9 @@ function EmptyNutritionCard({ theme, targets, dayLabel }: { theme: Theme; target
 
 export function TodayScreen({
   theme, vm, onLog, onScan, onDescribe, onTab, onProfile, onAddWater, onUndoWater, onRetrySync, onRemoveEntry,
+  onDismissCelebration, onOpenTrends,
 }: TodayScreenProps) {
+  const hasHistory = vm.kind === 'ready' && (vm.streak.longest > 0 || vm.comeback !== undefined);
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <ScrollView contentContainerStyle={{ padding: space.s4, paddingBottom: 120, gap: space.s4 }}>
@@ -177,16 +195,28 @@ export function TodayScreen({
           </View>
         ) : vm.entries.length === 0 ? (
           <>
-            <EmptyNutritionCard theme={theme} targets={vm.targets} dayLabel={vm.dateLabel.split('· ')[1] ?? ''} />
+            <EmptyNutritionCard theme={theme} targets={vm.targets}
+              dayLabel={vm.dateLabel.split('· ')[1] ?? ''} returning={hasHistory} />
+            {vm.comeback !== undefined && (
+              <ComebackCard testID="comeback-card" theme={theme}
+                title={vm.comeback.title} body={vm.comeback.body} />
+            )}
+            {hasHistory && (
+              <WeekStrip testID="week-summary" theme={theme} days={vm.week.days}
+                summary={vm.week.summary} footnote={vm.week.footnote} onPress={onOpenTrends} />
+            )}
             <ActionRow theme={theme} iconBg={theme.softBlueBg} onPress={onScan}
               icon={<ScanIcon color={theme.tint} />}
               title={str.scanTitle} subtitle={str.scanSub} />
             <ActionRow theme={theme} iconBg={theme.successBg} onPress={onDescribe}
               icon={<ChatIcon color={theme.success} />}
               title={str.describeTitle} subtitle={str.describeSub} />
-            <ActionRow theme={theme} iconBg={theme.softOrangeBg} onPress={onLog} chevron={false}
-              icon={<FlameIcon color={theme.macroProtein} />}
-              title={str.streakStartTitle} subtitle={str.streakStartSub} />
+            {vm.comeback === undefined && (
+              <ActionRow theme={theme} iconBg={theme.softOrangeBg} onPress={onLog} chevron={false}
+                icon={<FlameIcon color={theme.macroProtein} />}
+                title={vm.streak.current > 0 ? str.streakKeepTitle(vm.streak.current) : str.streakStartTitle}
+                subtitle={vm.streak.current > 0 ? str.streakKeepSub : str.streakStartSub} />
+            )}
           </>
         ) : (
           <>
@@ -194,7 +224,9 @@ export function TodayScreen({
               <NutritionCard theme={theme} targets={vm.targets} summary={vm.summary}
                 statusLabel={vm.summary.isOver ? str.overPace : str.onPace}
                 statusColor={vm.summary.isOver ? theme.danger : theme.success} />
-              {vm.coach !== undefined && <CoachStrip theme={theme} text={vm.coach} />}
+              {vm.coach !== undefined && (
+                <CoachStrip testID="coach-strip" theme={theme} text={vm.coach.text} tone={vm.coach.tone} />
+              )}
             </View>
 
             <View style={{ flexDirection: 'row', gap: space.s4 }}>
@@ -220,6 +252,9 @@ export function TodayScreen({
               </Pressable>
             </View>
 
+            <WeekStrip testID="week-summary" theme={theme} days={vm.week.days}
+              summary={vm.week.summary} footnote={vm.week.footnote} onPress={onOpenTrends} />
+
             <View style={{ gap: space.s2 }}>
               <Text style={{ fontSize: t.footnote.size, fontWeight: '600', letterSpacing: 0.8, color: theme.secondaryLabel }}>
                 {str.todaysMeals}
@@ -240,6 +275,11 @@ export function TodayScreen({
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
         <TabBar theme={theme} activeIndex={0} onTab={onTab} onLog={onLog} soonIndices={[]} />
       </View>
+
+      {vm.kind === 'ready' && vm.celebration !== undefined && (
+        <CelebrationOverlay theme={theme} title={vm.celebration.title} body={vm.celebration.body}
+          streakLine={vm.celebration.streakLine} onDismiss={onDismissCelebration} />
+      )}
     </View>
   );
 }
