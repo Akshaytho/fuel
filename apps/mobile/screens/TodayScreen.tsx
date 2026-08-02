@@ -104,6 +104,9 @@ function NutritionCard({ theme, targets, summary, statusLabel, statusColor }: {
 }) {
   const left = Math.max(0, summary.remaining.kcal);
   const over = summary.isOver;
+  // Colour follows the MEANINGFUL threshold, wording follows the literal fact:
+  // 5 kcal over still reads "Calories over 5", but nothing turns red for it.
+  const alarm = summary.isMeaningfullyOver;
   return (
     <View style={{ backgroundColor: theme.card, borderRadius: radius.card, padding: space.s4, gap: space.s4 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -118,7 +121,7 @@ function NutritionCard({ theme, targets, summary, statusLabel, statusColor }: {
           inner={(summary.progress.carbs + summary.progress.fat) / 2}
         />
         <View style={{ flex: 1, gap: space.s3 }}>
-          <StatBlock theme={theme} label={over ? str.calsOver : str.calsLeft} labelColor={over ? theme.danger : theme.success}
+          <StatBlock theme={theme} label={over ? str.calsOver : str.calsLeft} labelColor={alarm ? theme.danger : theme.success}
             big={fmt(over ? -summary.remaining.kcal : left)} small={str.ofTarget(fmt(targets.kcal))} />
           <StatBlock theme={theme} label={str.protein} labelColor={theme.macroProtein}
             big={fmt(summary.consumed.protein_g)} small={`/${fmt(targets.protein_g)}g`} />
@@ -229,8 +232,8 @@ export function TodayScreen({
           <>
             <View style={{ gap: space.s3 }}>
               <NutritionCard theme={theme} targets={vm.targets} summary={vm.summary}
-                statusLabel={vm.summary.isOver ? str.overPace : str.onPace}
-                statusColor={vm.summary.isOver ? theme.danger : theme.success} />
+                statusLabel={vm.summary.isMeaningfullyOver ? str.overPace : str.onPace}
+                statusColor={vm.summary.isMeaningfullyOver ? theme.danger : theme.success} />
               {vm.coach !== undefined && (
                 <CoachStrip testID="coach-strip" theme={theme} text={vm.coach.text} tone={vm.coach.tone} />
               )}

@@ -119,6 +119,38 @@ extractor pattern) and put it side-by-side with the build in the harness.
 Fidelity acceptance = element-by-element comparison against that screenshot,
 never against memory of the palette.
 
+## Harm avoidance (added after docs/research/0002)
+
+Fuel is a calorie tracker, and the evidence that calorie trackers worsen
+disordered eating is strong enough to be a design constraint rather than a
+footnote. Eikey et al. (BJPsych Open) found the harm came from ORDINARY,
+well-intentioned features: red/green over-budget colouring triggering "guilt,
+embarrassment and shame"; streaks becoming a contest to eat progressively
+less; diary-completion warnings motivating continued weight loss regardless of
+intent. Standing rules, all of them already enforced by tests:
+
+- **Nothing turns red for a rounding error.** Colour follows
+  `isMeaningfullyOver` / `RING_OVER_TOLERANCE` (5%); wording stays literal.
+- **No good/bad food labels, no warning popups, no leaderboards.**
+- **Never monetise anxiety.** Cal AI sells a $0.99 "Streak Restore". Fuel will
+  not sell, gift or restore rest days, now or later.
+- **Never claim someone logged a day they did not.** Rest days are shown as
+  rest days; half-logged days are shown as half-logged.
+- **Keep the floors.** Sex-specific kcal floors and the deficit cap are safety
+  features, not tunables.
+- **Express uncertainty when we have it.** The NIH found photo-logging apps
+  underestimate by 250–345 kcal per meal. When Fuel ships photo/describe
+  logging it shows a RANGE, never a fake precise number.
+
+## Competitive position (docs/research/0002)
+
+Fuel already has the thing only MacroFactor has — adaptive TDEE from weight
+trend plus intake — and the thing almost nobody has: an offline-first,
+contrast-audited, adherence-neutral build. The known remaining gaps are saved
+meals/recipes, fibre, food-data provenance, and everything blocked on a device
+build (health integrations, widgets, reminders). Design for weeks 4–12: the
+category dies at 3–5 weeks and the median quit is week 10.
+
 ## When you (Claude) make a mistake
 
 Diagnose why, then add a rule here or to the feature spec so the mistake

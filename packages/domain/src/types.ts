@@ -47,7 +47,10 @@ export interface DaySummary {
   progress: {                 // consumed / target, uncapped; UI clamps display
     kcal: number; protein: number; carbs: number; fat: number;
   };
-  isOver: boolean;            // kcal over target
+  /** literal: consumed exceeds the target at all. Drives the WORDING. */
+  isOver: boolean;
+  /** over by more than OVER_TOLERANCE. Drives the COLOUR — see day.ts. */
+  isMeaningfullyOver: boolean;
   entryCount: number;
 }
 

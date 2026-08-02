@@ -22,6 +22,7 @@
 import { DaySummary, Targets } from './types';
 import { Streak, daysBetween } from './streak';
 import { classifyDay } from './report';
+import { OVER_TOLERANCE } from './day';
 
 /** One day's logged energy, as stored. */
 export interface DayTotal { day: string; kcal: number }
@@ -153,9 +154,6 @@ export function weekAtAGlance(
 
 export type DayTone = 'neutral' | 'good' | 'perspective';
 export interface DayNote { tone: DayTone; text: string }
-
-/** Over by less than this fraction is rounding, not a blowout. */
-export const OVER_TOLERANCE = 0.05;
 
 const n0 = (x: number) => Math.round(x).toLocaleString('en-US');
 
