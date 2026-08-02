@@ -15,6 +15,9 @@ export interface LocalEntry extends Macros {
   /** which meal the user picked in the portion sheet (B-12: was dropped) */
   meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   logged_at: string;           // ISO
+  /** spec 0015: fibre for this portion. null/absent = the food had no figure.
+      Deliberately NOT part of Macros, because Macros cannot express "unknown". */
+  fiber_g?: number | null | undefined;
   synced: boolean;
 }
 

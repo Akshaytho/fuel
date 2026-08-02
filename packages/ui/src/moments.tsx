@@ -222,3 +222,50 @@ export function CelebrationOverlay({ theme, title, body, streakLine, ctaLabel = 
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Nutrient strip (spec 0015)
+// ---------------------------------------------------------------------------
+
+/**
+ * A slim, deliberately quiet row for a nutrient that is INFORMATION rather
+ * than a target to chase. The clinical guidance on fibre is to raise intake by
+ * 2–3 g every few days, so a bar that turns red or accrues a deficit would be
+ * telling people to do the one thing the evidence says not to do. This bar
+ * fills, stops at full, and never changes colour to scold.
+ */
+export function NutrientStrip({ theme, label, value, caption, progress, unknown, testID }: {
+  theme: Theme;
+  label: string;
+  /** already formatted, e.g. "14 g / 22 g" or "at least 14 g / 22 g" */
+  value: string;
+  caption?: string | undefined;
+  /** 0..1+; clamped for display. Omit when there is nothing to show. */
+  progress?: number | undefined;
+  /** we know nothing at all — draw the empty track, never a full-looking bar */
+  unknown?: boolean | undefined;
+  testID?: string;
+}) {
+  const pct = unknown ? 0 : Math.max(0, Math.min(1, progress ?? 0));
+  return (
+    <View testID={testID} style={{
+      backgroundColor: theme.card, borderRadius: radius.card,
+      paddingVertical: space.s3, paddingHorizontal: space.s4, gap: space.s2,
+    }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.label }}>{label}</Text>
+        <Text testID={testID ? `${testID}-value` : undefined}
+          style={{ fontSize: t.subhead.size, fontWeight: '700', color: theme.label }}>{value}</Text>
+      </View>
+      <View style={{ height: 6, borderRadius: radius.pill, backgroundColor: theme.separator, overflow: 'hidden' }}>
+        <View style={{
+          width: `${pct * 100}%`, height: '100%', borderRadius: radius.pill,
+          backgroundColor: theme.successGraphic,
+        }} />
+      </View>
+      {caption !== undefined && (
+        <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{caption}</Text>
+      )}
+    </View>
+  );
+}

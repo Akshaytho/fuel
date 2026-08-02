@@ -16,6 +16,9 @@ export function createRemote(url: string, anonKey: string, ctx: AuthContext): Re
           client_id: e.client_id, user_id: s.user_id, day: e.day,
           food_id: e.food_id, food_name: e.food_name, grams: e.grams,
           kcal: e.kcal, protein_g: e.protein_g, carbs_g: e.carbs_g, fat_g: e.fat_g,
+          // spec 0015: send null explicitly so the server stores "unknown",
+          // not a default. Postgres column is nullable for exactly this.
+          fiber_g: e.fiber_g ?? null,
           source: e.source, meal: e.meal, logged_at: e.logged_at,
         }),
       }));
@@ -131,6 +134,7 @@ export async function fetchLogEntries(url: string, anonKey: string, ctx: AuthCon
     food_id: r.food_id ? String(r.food_id) : null, food_name: String(r.food_name ?? 'Food'),
     grams: Number(r.grams ?? 0), kcal: Number(r.kcal ?? 0),
     protein_g: Number(r.protein_g ?? 0), carbs_g: Number(r.carbs_g ?? 0), fat_g: Number(r.fat_g ?? 0),
+    fiber_g: r.fiber_g === null || r.fiber_g === undefined ? null : Number(r.fiber_g),
     source: (['scan','describe','search','manual'] as const).includes(r.source as never) ? (r.source as LocalEntry['source']) : 'manual',
     meal: (['breakfast','lunch','dinner','snack'] as const).includes(r.meal as never) ? (r.meal as LocalEntry['meal']) : 'snack',
     logged_at: String(r.logged_at ?? ''), synced: true,

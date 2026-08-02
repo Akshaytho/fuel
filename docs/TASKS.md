@@ -27,7 +27,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] P1-03 Onboarding + connected journey (spec 0007): Welcome/Goal/AboutYou/Plan built to design; LIVE email auth (Supabase); profile persists local+remote; 10-step driven journey ALL PASS (signup→plan exact domain numbers→Day-1→live-search log→relaunch persistence); logged entry verified in LIVE log_entries. Apple/Google sign-in = B-09 (needs Harish dev accounts)
 - [x] P1-04 Log flow (spec 0005): LogSheet + SearchScreen + PortionSheet match design (side-by-side verified, light+dark); LIVE search proven vs Supabase (scripts/check-search.py); portion math live via domain; macro tokens corrected to production mapping (protein orange/carbs purple/fat blue). Stubs marked: Scan/Describe/Label→P2, Saved/Edit-food→backlog, Copy-yesterday→P1-05
 - [x] P1-05 Offline store + sync (spec 0006): @fuel/store (9 unit tests: instant add, crash recovery, retry, ordering); LIVE integration proof (idempotent replay=1 row, RLS isolation, e2e users) via check-sync.py; 16-step driven-UI walkthrough ALL PASS (every screen control clicked+asserted, offline round-trip); app wired to expo-sqlite kv store, demo data DELETED. Remote sync attaches at P1-03 (needs auth user)
-- [ ] P1-06 Food seed: pipeline BUILT+PROVEN (600 USDA foods live in DB, search verified; zero data in repo). Remaining for done: full ~8,000-food run — blocked on valid USDA key (photo key invalid; demo key rate-limited). Then OFF barcode layer (with P2 scan)
+- [ ] P1-06 (fibre column now populated for the seeded rows) Food seed: pipeline BUILT+PROVEN (600 USDA foods live in DB, search verified; zero data in repo). Remaining for done: full ~8,000-food run — blocked on valid USDA key (photo key invalid; demo key rate-limited). Then OFF barcode layer (with P2 scan)
 - [x] P1-07 Profile + export + delete (spec 0008): Profile screen per design (+ compliance Delete row); CSV export w/ profile lines; delete-account Edge Function DEPLOYED (JWT-verified, 401s proven) erasing rows+auth user; 15-step lifecycle journey ALL PASS; erasure admin-verified vs control user. Phase 1 code COMPLETE — phase exit = Harish's on-phone run (P0-08)
 
 ## Backlog / discovered work
@@ -151,12 +151,10 @@ Add newly discovered work as new boxes — never do it silently.
 
 ### Still open, and why
 
-- [ ] W-10 Fibre as a first-class nutrient. Needs a `fiber_g_per_100g` column
-      on `public.foods` AND a source that populates it. Blocked with B-04 on a
-      valid USDA key — only ~600 A–B foods are seeded today.
-- [ ] W-11 Food-data provenance + a Cronometer-style "data quality" line, so a
-      zero means "not reported" rather than "you ate none". Cheap once W-10
-      lands; pointless before it.
+- [x] W-10 Fibre as a first-class nutrient (spec 0015). Migration 0006 live;
+      seed pipeline backfills; 513/600 seeded foods carry a figure.
+- [x] W-11 Data-quality honesty: a missing figure is NULL end-to-end and the
+      Today strip reports coverage, so a zero can never be mistaken for a gap.
 - [ ] W-12 Uncertainty ranges on estimated entries. The NIH found photo apps
       underestimate by 250–345 kcal/meal; when Phase 2 describe/scan ships it
       must show a RANGE. Blocked on Phase 2 (needs a fresh Anthropic key, B-06).

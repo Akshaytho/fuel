@@ -13,13 +13,21 @@ import json, sys, time, urllib.request, urllib.error
 
 ENV = dict(l.strip().split('=', 1) for l in open('.env')
            if '=' in l and not l.strip().startswith('#'))
-USDA_KEY = ENV['USDA_API_KEY']
+# .env may hold a stale/invalid key (P1-06 blocker). Allow an override so a
+# fibre backfill of the already-seeded rows can run on DEMO_KEY without
+# waiting for a valid production key.
+import os
+USDA_KEY = (os.environ.get('USDA_API_KEY_OVERRIDE') or ENV['USDA_API_KEY']).strip()
 SB_TOKEN = ENV['SUPABASE_ACCESS_TOKEN']
 REF = 'wccxzcrxdcqvprswdvlu'
 UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0'
 
 # USDA nutrient numbers (per 100 g in Foundation/SR Legacy)
 N_KCAL, N_PROTEIN, N_FAT, N_CARBS = '208', '203', '204', '205'
+# Spec 0015: fibre is NULLABLE all the way down. A food that does not report
+# it gets NULL, never 0 — "we don't know" and "there is none" are different
+# facts and the app shows them differently.
+N_FIBER = '291'
 
 def http(url, payload=None, timeout=90, bearer=None):
     headers = {'User-Agent': UA, 'Content-Type': 'application/json'}
@@ -61,6 +69,7 @@ def to_row(food):
     p = nutrients.get(N_PROTEIN) or 0
     c = nutrients.get(N_CARBS) or 0
     f = nutrients.get(N_FAT) or 0
+    fib = nutrients.get(N_FIBER)          # may legitimately be absent → NULL
     if kcal is None:
         kcal = 4 * p + 4 * c + 9 * f          # Atwater fallback
     if kcal is None or kcal < 0:
@@ -68,8 +77,9 @@ def to_row(food):
     name = (food.get('description') or '').strip()
     if not name:
         return None
+    fib_sql = 'null' if fib is None else str(round(fib, 1))
     return (f"('usda','{food['fdcId']}','{esc(name[:200])}',"
-            f"{round(kcal,1)},{round(p,1)},{round(c,1)},{round(f,1)},true)")
+            f"{round(kcal,1)},{round(p,1)},{round(c,1)},{round(f,1)},{fib_sql},true)")
 
 def main():
     limit_pages = None
@@ -87,9 +97,13 @@ def main():
         if rows:
             q = ('insert into public.foods '
                  '(source, source_ref, name, kcal_per_100g, protein_g_per_100g,'
-                 ' carbs_g_per_100g, fat_g_per_100g, verified) values '
+                 ' carbs_g_per_100g, fat_g_per_100g, fiber_g_per_100g, verified) values '
                  + ',\n'.join(rows)
-                 + ' on conflict (source, source_ref) where source_ref is not null do nothing')
+                 # Spec 0015: re-running the seed BACKFILLS fibre onto rows that
+                 # predate the column, instead of skipping them entirely.
+                 + ' on conflict (source, source_ref) where source_ref is not null'
+                   ' do update set fiber_g_per_100g = excluded.fiber_g_per_100g'
+                   ' where public.foods.fiber_g_per_100g is null')
             sql(q)
             total += len(rows)
         print(f'page {page}: {len(rows)} rows (total {total})', flush=True)

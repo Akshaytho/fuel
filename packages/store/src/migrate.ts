@@ -61,6 +61,12 @@ export function normalizeLogEntries(raw: string | null): LocalEntry[] {
       protein_g: num(e.protein_g, 0),
       carbs_g: num(e.carbs_g, 0),
       fat_g: num(e.fat_g, 0),
+      // spec 0015: absent/garbage stays UNDEFINED, never 0 — an entry written
+      // before this column existed did not contain zero grams of fibre, it
+      // contained no information about fibre.
+      ...(typeof e.fiber_g === 'number' && Number.isFinite(e.fiber_g) && e.fiber_g >= 0
+        ? { fiber_g: e.fiber_g }
+        : e.fiber_g === null ? { fiber_g: null } : {}),
       source: (SOURCES as readonly string[]).includes(e.source as string)
         ? (e.source as LocalEntry['source']) : 'manual',
       // D-2: the field pre-B-12 builds never wrote — inferred, never undefined

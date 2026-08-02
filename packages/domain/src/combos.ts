@@ -11,6 +11,7 @@
  * Nothing to name, maintain, sync or let go stale.
  */
 import { LoggedItem, foodKey } from './gotos';
+import { scaleFiber } from './fibre';
 
 export const REPEAT_WINDOW_DAYS = 60;
 /** Distinct days a combination must appear on before we call it a habit. */
@@ -104,6 +105,14 @@ export function repeatMealsFor(
         protein_g: Math.round(latest.protein_g * f * 10) / 10,
         carbs_g: Math.round(latest.carbs_g * f * 10) / 10,
         fat_g: Math.round(latest.fat_g * f * 10) / 10,
+        // spec 0015: scale from the latest per-portion figure; unknown stays
+        // unknown rather than becoming a confident zero.
+        fiber_g: latest.grams > 0
+          ? scaleFiber(
+              latest.fiber_g === null || latest.fiber_g === undefined
+                ? null : (latest.fiber_g / latest.grams) * 100,
+              g)
+          : latest.fiber_g ?? null,
       });
     }
     items.sort((a, b) => (a.food_name < b.food_name ? -1 : 1));

@@ -12,6 +12,9 @@ export interface LoggedItem {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  /** spec 0015: fibre travels with a re-logged item so one-tap logging does
+      not silently drop it — and stays UNKNOWN when it was never known. */
+  fiber_g?: number | null | undefined;
   meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   day: string;          // YYYY-MM-DD local
   logged_at: string;    // ISO

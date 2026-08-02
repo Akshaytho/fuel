@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
 import { TripleRing, TabBar, StatCard, CoachStrip, ActionRow, ListRow, Card, ScanIcon, ChatIcon, FlameIcon, pressedStyle,
-  WeekStrip, ComebackCard, CelebrationOverlay, type WeekStripDay, type CoachTone } from '@fuel/ui';
+  WeekStrip, ComebackCard, CelebrationOverlay, NutrientStrip, type WeekStripDay, type CoachTone } from '@fuel/ui';
 import type { DaySummary, Targets, Comeback, Celebration } from '@fuel/domain';
 import { str } from './strings';
 
@@ -36,6 +36,8 @@ export type TodayVM =
       comeback?: Comeback | undefined;
       /** spec 0013: an earned rest day just covered a missed day */
       restNote?: { title: string; body: string } | undefined;
+      /** spec 0015: fibre, with the coverage that produced the number */
+      fibre?: { value: string; caption?: string | undefined; progress?: number | undefined; unknown: boolean } | undefined;
       /** design 6a: set on the day this user's targets land, once per day */
       celebration?: Celebration | undefined;
     };
@@ -240,6 +242,11 @@ export function TodayScreen({
               {vm.restNote !== undefined && (
                 <ComebackCard testID="rest-note" theme={theme}
                   title={vm.restNote.title} body={vm.restNote.body} />
+              )}
+              {vm.fibre !== undefined && (
+                <NutrientStrip testID="fibre-strip" theme={theme} label={str.fibre}
+                  value={vm.fibre.value} caption={vm.fibre.caption}
+                  progress={vm.fibre.progress} unknown={vm.fibre.unknown} />
               )}
             </View>
 

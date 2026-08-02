@@ -3,6 +3,7 @@ import { View, Modal, Pressable, TextInput } from 'react-native';
 import { Theme } from '@fuel/tokens';
 import {
   scalePer100g, summarizeConsumed, computeTargets, waterLitersFor, mealForHour, localDayISO,
+  summarizeFiber, scaleFiber,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
   weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey, repeatMealsFor,
@@ -252,6 +253,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       allEntries.map((e) => ({ day: e.day, kcal: e.kcal })), day, targets.kcal,
       streak.restedDays);
     const note = dayNote({ summary, targets, week: glance });
+    // spec 0015: fibre, and the coverage behind it. A number with no coverage
+    // attached is the thing this feature exists to avoid.
+    const fib = summarizeFiber(
+      entries.map((e) => ({ kcal: e.kcal, fiber_g: e.fiber_g })), targets.kcal);
     // A covered gap is not a comeback — the run never broke. Showing
     // "Welcome back" AND "Your streak held" would be two apps talking at once.
     const restCovered = streak.restedDays.some((d) => {
@@ -300,6 +305,16 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       comeback: comeback ?? undefined,
       // spec 0013: name the save on the day it happens, so a covered day is
       // never something the app quietly absorbed on her behalf
+      fibre: entries.length === 0 || fib.targetG === null ? undefined : {
+        value: fib.allUnknown ? str.fibreUnknownValue(fib.targetG)
+          : fib.complete ? str.fibreValue(fib.grams, fib.targetG)
+          : str.fibreAtLeast(fib.grams, fib.targetG),
+        caption: fib.allUnknown ? str.fibreUnknownAll
+          : fib.unknownItems > 0 ? str.fibreGap(fib.unknownItems)
+          : str.fibreFromPct(Math.round(fib.coverage * 100)),
+        progress: fib.progress ?? undefined,
+        unknown: fib.allUnknown,
+      },
       restNote: restCovered
         ? { title: str.restSaved, body: str.restSavedSub(streak.restedDays.length) }
         : undefined,
@@ -458,9 +473,13 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       kcal: picked.kcal_per_100g, protein_g: picked.protein_g_per_100g,
       carbs_g: picked.carbs_g_per_100g, fat_g: picked.fat_g_per_100g,
     };
+    // spec 0015: fibre scales alongside the macros but keeps its own
+    // three-valued logic — a food with no figure yields null, not 0.
+    const fiber_g = scaleFiber(picked.fiber_g_per_100g, grams);
     await store.add({
       day: todayISO(), food_id: picked.id, food_name: picked.name, grams,
-      ...scalePer100g(per100, grams), source: 'search', meal, logged_at: new Date().toISOString(),
+      ...scalePer100g(per100, grams), fiber_g,
+      source: 'search', meal, logged_at: new Date().toISOString(),
     });
     bump();
     setSheet('none'); setPicked(null); setQuery(''); setResults([]);
@@ -530,7 +549,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     await store.add({
       day: todayISO(), food_id: item.food_id, food_name: item.food_name,
       grams: item.grams, kcal: item.kcal, protein_g: item.protein_g,
-      carbs_g: item.carbs_g, fat_g: item.fat_g,
+      carbs_g: item.carbs_g, fat_g: item.fat_g, fiber_g: item.fiber_g ?? null,
       source: 'manual', meal: currentMeal(), logged_at: new Date().toISOString(),
     });
     setSheet('none');
@@ -548,7 +567,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       await store.add({
         day: todayISO(), food_id: it.food_id, food_name: it.food_name,
         grams: it.grams, kcal: it.kcal, protein_g: it.protein_g,
-        carbs_g: it.carbs_g, fat_g: it.fat_g,
+        carbs_g: it.carbs_g, fat_g: it.fat_g, fiber_g: it.fiber_g ?? null,
         source: 'manual', meal: currentMeal(), logged_at: new Date().toISOString(),
       });
     }
@@ -565,7 +584,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       await store.add({
         day: todayISO(), food_id: it.food_id, food_name: it.food_name,
         grams: it.grams, kcal: it.kcal, protein_g: it.protein_g,
-        carbs_g: it.carbs_g, fat_g: it.fat_g,
+        carbs_g: it.carbs_g, fat_g: it.fat_g, fiber_g: it.fiber_g ?? null,
         source: 'manual', meal: it.meal, logged_at: new Date().toISOString(),
       });
     }

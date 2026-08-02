@@ -6,6 +6,8 @@ export interface FoodHit {
   protein_g_per_100g: number;
   carbs_g_per_100g: number;
   fat_g_per_100g: number;
+  /** spec 0015: NULL when the source reported no figure. Never coerce to 0. */
+  fiber_g_per_100g: number | null;
 }
 
 export interface FoodRepo {
@@ -39,6 +41,9 @@ export function createSupabaseFoodRepo(url: string, anonKey: string): FoodRepo {
         protein_g_per_100g: Number(r.protein_g_per_100g),
         carbs_g_per_100g: Number(r.carbs_g_per_100g),
         fat_g_per_100g: Number(r.fat_g_per_100g),
+        // A missing fibre figure stays missing all the way to the screen.
+        fiber_g_per_100g: r.fiber_g_per_100g === null || r.fiber_g_per_100g === undefined
+          ? null : Number(r.fiber_g_per_100g),
       }));
     },
   };

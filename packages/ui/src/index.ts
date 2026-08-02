@@ -10,5 +10,5 @@ export { ScanIcon, ChatIcon, FlameIcon } from './icons';
 export { Sheet, SearchField, IconTile, FoodRow, SelectChip, MacroPreviewTile, CTAButton } from './sheets';
 export { StepBar, Segmented, OptionCard, RadioRow, FieldRow, ToggleRow, BrandMark } from './onboarding';
 export { useTween, FadeSlideIn, BootSplash, pressedStyle, useReducedMotion } from './motion';
-export { WeekStrip, ComebackCard, CelebrationOverlay, CELEBRATION_AUTO_DISMISS_MS, type WeekStripDay, type WeekDotState } from './moments';
+export { WeekStrip, ComebackCard, CelebrationOverlay, NutrientStrip, CELEBRATION_AUTO_DISMISS_MS, type WeekStripDay, type WeekDotState } from './moments';
 export { TrendLineChart, DayBarChart, WeekBarChart, niceScale, yPos, rampOpacity, roundedTopBar } from './charts';
