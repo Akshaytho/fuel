@@ -1,0 +1,220 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fuel — where each thing belongs</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0F1115;color:#E8E8ED;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:34px 22px 70px}
+h1{font-size:27px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px;color:#fff}
+h2{font-size:19px;font-weight:700;margin:44px 0 4px;color:#fff}
+.lead{color:#9A9AA2;max-width:74ch;margin-bottom:8px}
+.sec{margin-bottom:14px;color:#9A9AA2;max-width:78ch}
+.rowx{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:20px}
+.ph{width:330px}
+figcaption{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+figcaption .t{font-weight:700;color:#fff;font-size:15px}
+.b{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:.3px}
+.b.now{background:#4A2230;color:#FFA8B8}.b.new{background:#153A26;color:#63E08C}.b.add{background:#14304A;color:#7FC0FF}
+.frame{width:330px;height:672px;border-radius:34px;padding:9px;background:#26262B;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.screen{position:relative;width:100%;height:100%;border-radius:26px;overflow:hidden;background:#F2F2F7;color:#000;
+  font-size:12px;padding:14px 12px 60px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.screen::-webkit-scrollbar{width:0}
+.note{color:#8A8A93;font-size:12.5px;margin-top:10px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end}
+.date{font-size:9px;font-weight:700;letter-spacing:.7px;color:#6B6B6E}
+.h1{font-size:23px;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:7px}
+.chip{font-size:10px;font-weight:700;background:#FFF2E5;color:#8A4B00;padding:3px 8px;border-radius:99px}
+.av{width:30px;height:30px;border-radius:99px;background:#FF9F0A;color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.card{background:#fff;border-radius:13px;padding:11px 12px}
+.card.half{flex:1}
+.row{display:flex}.row.sb{justify-content:space-between;align-items:center}
+.ok{color:#34C759;font-weight:700;font-size:11px}
+.chev{color:#086ACC;font-weight:700;font-size:11px}
+.big{font-size:17px;font-weight:800}.xl{font-size:21px;font-weight:800}
+.sm{font-size:10px;color:#6B6B6E;font-weight:400}
+.sm2{font-size:10px;color:#6B6B6E;margin-top:3px}
+.stat{margin-bottom:7px}
+.lg{color:#34C759;font-weight:700;font-size:11px}.lo{color:#FF9F0A;font-weight:700;font-size:11px}.lp{color:#AF52DE;font-weight:700;font-size:11px}
+.strip{border-radius:11px;padding:9px 12px;font-weight:600;font-size:11px;position:relative}
+.strip.info{background:#E8E8ED;color:#3C3C43}
+.slot{position:absolute;right:10px;top:9px;font-size:9px;font-weight:700;color:#0970D9;background:#E9F2FF;padding:2px 7px;border-radius:99px}
+.bar{height:5px;border-radius:99px;background:#E5E5EA;overflow:hidden;margin-top:6px}
+.bar span{display:block;height:100%;background:#1D7A3D;border-radius:99px}
+.bar.w{flex:1;margin:0 9px}
+.water{background:#fff;border-radius:13px;padding:10px 12px;display:flex;align-items:center;font-size:11px;font-weight:700}
+.water .add{color:#086ACC;margin-left:9px}
+.ov{font-size:9px;font-weight:800;letter-spacing:.7px;color:#6B6B6E;margin-bottom:6px}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #E5E5EA;font-size:11px}
+.mrow.last{border-bottom:0}
+.p{color:#FF9F0A;font-weight:700}
+.plusb{width:22px;height:22px;border-radius:99px;background:#E9F2FF;color:#086ACC;display:flex;align-items:center;justify-content:center;font-weight:800}
+.dots{display:flex;justify-content:space-between;margin-top:9px}
+.dots div{text-align:center;flex:1}
+.dots i{display:block;font-style:normal;font-size:9px;font-weight:700;color:#6B6B6E;margin-bottom:5px}
+.d{display:inline-flex;width:18px;height:18px;border-radius:99px;align-items:center;justify-content:center;font-size:9px;color:#fff}
+.d.full{background:#1D7A3D}
+.d.part{border:2px dashed #6B6B6E}
+.d.miss{border:2px solid #E5E5EA}
+.d.today{border:2px solid #086ACC}
+.d.fut{background:#E5E5EA;width:5px;height:5px;margin-top:6px}
+.seg{display:flex;background:#E5E5EA;border-radius:9px;padding:3px;font-size:10px;font-weight:700}
+.seg b,.seg span{flex:1;text-align:center;padding:5px 0;border-radius:7px;color:#6B6B6E;font-weight:600}
+.seg b{background:#fff;color:#000;font-weight:800}
+.h2{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.lnk{color:#086ACC;font-weight:700}
+.search{background:#E5E5EA;border-radius:9px;padding:9px 11px;color:#6B6B6E;font-size:11px}
+.blue{color:#086ACC;font-weight:700}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;padding:10px 14px 22px}
+.grab{width:34px;height:4px;border-radius:99px;background:#E5E5EA;margin:0 auto 10px}
+.drow{display:flex;justify-content:space-between;font-size:11px;margin-top:11px;font-weight:600}
+.drow i{font-style:normal;color:#6B6B6E;font-weight:400}
+.hr{height:1px;background:#E5E5EA;margin:14px 0 2px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:52px;background:#fff;border-top:1px solid #E5E5EA;
+  display:flex;align-items:center;justify-content:space-around;font-size:9px;color:#6B6B6E;font-weight:600}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab .ic{font-size:13px}
+.tab.on{color:#086ACC}
+.tab.plus{width:38px;height:38px;border-radius:99px;background:#0970D9;color:#fff;font-size:21px;
+  display:flex;align-items:center;justify-content:center;margin-top:-14px;box-shadow:0 5px 14px rgba(9,112,217,.4)}
+table{border-collapse:collapse;margin-top:14px;font-size:13.5px;width:100%;max-width:900px}
+th,td{text-align:left;padding:8px 13px;border-bottom:1px solid #26262B;vertical-align:top}
+th{color:#fff;font-weight:700}
+td:first-child{color:#FFA8B8;white-space:nowrap}
+td:nth-child(2){color:#63E08C;white-space:nowrap}
+.rules{background:#16181D;border-left:3px solid #0970D9;padding:14px 18px;border-radius:0 10px 10px 0;margin-top:16px;max-width:900px}
+.rules li{margin:6px 0 6px 18px}
+.q{border-left:3px solid #4A4A52;padding-left:14px;color:#9A9AA2;font-style:italic;margin:12px 0;max-width:78ch}
+</style></head><body>
+
+<h1>Fuel — where each thing belongs</h1>
+<p class="lead">You were right: everything landed on Today. This is the audit, what the leading apps do instead, and exactly what I propose moving — drawn, so we can argue about it before any code changes.</p>
+
+<h2>1. The problem, measured</h2>
+<p class="sec">Today can render <b>9 competing blocks</b> on a logged day. Measured on a real account at 390×890, a single ordinary day was already 1,065&nbsp;px of content — and that was with only one of the conditional cards showing.</p>
+<p class="q">MyFitnessPal did this in April 2026: replaced its Diary tab with a card-based Today tab. Version rating fell <b>3.24 → 1.54 stars</b>. The top complaint was not that the cards were ugly — it was “the food diary is now buried.”</p>
+
+<h2>2. Today — now vs proposed</h2>
+<div class="rowx">
+  
+    <figure class="ph">
+      <figcaption><span class="t">Today — now</span><span class="b now">9 BLOCKS</span></figcaption>
+      <div class="frame"><div class="screen"><div class="hdr"><div><div class="date">SUNDAY, AUGUST 2 · DAY 1</div>
+      <div class="h1">Summary </div></div><div class="av">H</div></div><div class="card" style=""><div class="row sb"><b>Nutrition</b><span class="ok">On pace ›</span></div>
+      <div class="row" style="gap:16px;align-items:center;margin-top:10px"><svg width="150" height="150" viewBox="0 0 150 150">
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#E9F9EE" stroke-width="13"/>
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#34C759" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="245 402" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FFF2E5" stroke-width="13"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FF9F0A" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="110 302" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#F3EDFC" stroke-width="13"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#AF52DE" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="70 201" transform="rotate(-90 75 75)"/></svg>
+      <div style="flex:1">
+        <div class="stat"><span class="lg">Calories left</span><br><b class="big">892</b><span class="sm"> of 1,547</span></div>
+        <div class="stat"><span class="lo">Protein</span><br><b class="big">30</b><span class="sm">/134g</span></div>
+        <div class="stat"><span class="lp">Carbs · Fat</span><br><b class="big">61 · 24</b><span class="sm"> g</span></div>
+      </div></div></div><div class="strip info">111 g protein to go.</div><div class="card" style=""><div class="row sb"><b>Fibre</b><b>at least 2.6 g / 22 g</b></div><div class="bar"><span style="width:12%"></span></div><div class="sm2">1 item had no fibre figure</div></div><div class="row" style="gap:14px"><div class="card half"><div class="row sb"><b>Streak</b><span>🔥</span></div><div><b class="big">1</b> <span class="sm">day</span></div></div><div class="card half"><div class="row sb"><b>Water</b><span class="blue">+250</span></div><div><b class="big">0.3</b> <span class="sm">/ 2.5 L</span></div></div></div><div class="card" style=""><div class="row sb"><b>1 of 7 days logged this week</b><span class="sm">avg 655 kcal</span></div><div class="dots">
+  <div><i>M</i><u class="d full">✓</u></div><div><i>T</i><u class="d full">✓</u></div>
+  <div><i>W</i><u class="d part"></u></div><div><i>T</i><u class="d miss"></u></div>
+  <div><i>F</i><u class="d today"></u></div><div><i>S</i><u class="d fut"></u></div>
+  <div><i>S</i><u class="d fut"></u></div></div></div><div class="card" style=""><div class="ov">TODAY'S MEALS</div>
+  <div class="mrow"><div><b>Bananas, raw</b><div class="sm2">Breakfast · 100 g · 89 kcal</div></div><span class="p">1g</span></div>
+  <div class="mrow"><div><b>Apple juice</b><div class="sm2">Lunch · 200 g · 92 kcal</div></div><span class="p">0g</span></div>
+  <div class="mrow last"><div><b>Beef, ground</b><div class="sm2">Dinner · 150 g · 474 kcal</div></div><span class="p">29g</span></div></div><div class="tabbar"><div class="tab on"><span class="ic">◉</span>Today</div><div class="tab"><span class="ic">〜</span>Trends</div><div class="tab plus">+</div><div class="tab"><span class="ic">▤</span>Report</div><div class="tab"><span class="ic">☺</span>You</div></div></div></div>
+      <p class="note">Nutrition, coach line, fibre, streak, water, week strip and the meals list all argue for attention. The meals list — the thing you open the app to see — starts 705&nbsp;px down.</p>
+    </figure>
+  
+    <figure class="ph">
+      <figcaption><span class="t">Today — proposed</span><span class="b new">5 BLOCKS</span></figcaption>
+      <div class="frame"><div class="screen"><div class="hdr"><div><div class="date">SUNDAY, AUGUST 2 · DAY 1</div>
+      <div class="h1">Summary <span class="chip">🔥 12</span></div></div><div class="av">H</div></div><div class="card" style=""><div class="row sb"><b>Nutrition</b><span class="chev">Detail ›</span></div>
+      <div class="row" style="gap:16px;align-items:center;margin-top:10px"><svg width="150" height="150" viewBox="0 0 150 150">
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#E9F9EE" stroke-width="13"/>
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#34C759" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="245 402" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FFF2E5" stroke-width="13"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FF9F0A" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="110 302" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#F3EDFC" stroke-width="13"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#AF52DE" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="70 201" transform="rotate(-90 75 75)"/></svg>
+      <div style="flex:1">
+        <div class="stat"><span class="lg">Calories left</span><br><b class="big">892</b><span class="sm"> of 1,547</span></div>
+        <div class="stat"><span class="lo">Protein</span><br><b class="big">30</b><span class="sm">/134g</span></div>
+        <div class="stat"><span class="lp">Carbs · Fat</span><br><b class="big">61 · 24</b><span class="sm"> g</span></div>
+      </div></div></div><div class="strip info">111 g protein to go.<span class="slot">the one moment slot</span></div><div class="water"><b>Water</b><div class="bar w"><span style="width:12%"></span></div><b>0.3 / 2.5 L</b><span class="add">+250</span></div><div class="card" style=""><div class="ov">TODAY'S MEALS</div>
+  <div class="mrow"><div><b>Bananas, raw</b><div class="sm2">Breakfast · 100 g · 89 kcal</div></div><span class="p">1g</span></div>
+  <div class="mrow"><div><b>Apple juice</b><div class="sm2">Lunch · 200 g · 92 kcal</div></div><span class="p">0g</span></div>
+  <div class="mrow last"><div><b>Beef, ground</b><div class="sm2">Dinner · 150 g · 474 kcal</div></div><span class="p">29g</span></div></div><div class="tabbar"><div class="tab on"><span class="ic">◉</span>Today</div><div class="tab"><span class="ic">〜</span>Progress</div><div class="tab plus">+</div><div class="tab"><span class="ic">🍎</span>Foods</div><div class="tab"><span class="ic">☺</span>You</div></div></div></div>
+      <p class="note">One job: how am I doing right now. Streak becomes a chip in the header. Fibre moves one tap into the card. The week strip moves to Progress. Water becomes a slim row. The meals list moves <b>up</b>, never down.</p>
+    </figure>
+  
+    <figure class="ph">
+      <figcaption><span class="t">Tap the card → detail</span><span class="b add">1 TAP DEEP</span></figcaption>
+      <div class="frame"><div class="screen"><div class="hdr"><div><div class="date">SUNDAY, AUGUST 2 · DAY 1</div>
+      <div class="h1">Summary </div></div><div class="av">H</div></div><div class="card" style=""><div class="row sb"><b>Nutrition</b><span class="chev">Detail ›</span></div>
+      <div class="row" style="gap:16px;align-items:center;margin-top:10px"><svg width="150" height="150" viewBox="0 0 150 150">
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#E9F9EE" stroke-width="13"/>
+  <circle cx="75" cy="75" r="64" fill="none" stroke="#34C759" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="245 402" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FFF2E5" stroke-width="13"/>
+  <circle cx="75" cy="75" r="48" fill="none" stroke="#FF9F0A" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="110 302" transform="rotate(-90 75 75)"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#F3EDFC" stroke-width="13"/>
+  <circle cx="75" cy="75" r="32" fill="none" stroke="#AF52DE" stroke-width="13" stroke-linecap="round"
+    stroke-dasharray="70 201" transform="rotate(-90 75 75)"/></svg>
+      <div style="flex:1">
+        <div class="stat"><span class="lg">Calories left</span><br><b class="big">892</b><span class="sm"> of 1,547</span></div>
+        <div class="stat"><span class="lo">Protein</span><br><b class="big">30</b><span class="sm">/134g</span></div>
+        <div class="stat"><span class="lp">Carbs · Fat</span><br><b class="big">61 · 24</b><span class="sm"> g</span></div>
+      </div></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="h2">Today in detail</div><div class="drow"><span>Calories</span><b>655 <i>of 1,547</i></b></div><div class="bar"><span style="width:42%"></span></div><div class="drow"><span>Protein</span><b>30 g <i>of 134 g</i></b></div><div class="bar"><span style="width:22%;background:#FF9F0A"></span></div><div class="drow"><span>Carbs</span><b>61 g <i>of 145 g</i></b></div><div class="bar"><span style="width:42%;background:#AF52DE"></span></div><div class="drow"><span>Fat</span><b>24 g <i>of 52 g</i></b></div><div class="bar"><span style="width:46%;background:#086ACC"></span></div><div class="hr"></div><div class="drow"><span>Fibre</span><b>at least 2.6 g <i>of 22 g</i></b></div><div class="bar"><span style="width:12%;background:#1D7A3D"></span></div><div class="sm2">1 item had no fibre figure — so this is a floor, not a total.</div></div><div class="tabbar"><div class="tab on"><span class="ic">◉</span>Today</div><div class="tab"><span class="ic">〜</span>Progress</div><div class="tab plus">+</div><div class="tab"><span class="ic">🍎</span>Foods</div><div class="tab"><span class="ic">☺</span>You</div></div></div></div>
+      <p class="note">Where fibre actually belongs. Every app in the field keeps micronutrients off the home screen — putting fibre beside calories tells the user they rank equally, which isn’t true.</p>
+    </figure>
+</div>
+
+<h2>3. Trends + Report become one Progress tab</h2>
+<p class="sec">Every competitor has exactly <b>one</b> “how am I doing over time” destination — Progress, Discover, Insights, Analysis. Fuel has two, and neither is complete alone: Trends holds the charts, Report holds the verdict and the target proposal. Merging them frees a tab slot.</p>
+<div class="rowx">
+  
+    <figure class="ph">
+      <figcaption><span class="t">Progress</span><span class="b new">MERGED</span></figcaption>
+      <div class="frame"><div class="screen"><div class="hdr"><div><div class="date">THIS WEEK · AUG 4 – AUG 10</div>
+      <div class="h1">Progress </div></div><div class="av">H</div></div><div class="seg"><b>Week</b><span>Weight</span><span>Energy</span><span>Consistency</span></div><div class="card" style=""><div class="row sb"><b>5 of 7 days logged</b><span class="sm">avg 1,512 kcal</span></div><div class="dots">
+  <div><i>M</i><u class="d full">✓</u></div><div><i>T</i><u class="d full">✓</u></div>
+  <div><i>W</i><u class="d part"></u></div><div><i>T</i><u class="d miss"></u></div>
+  <div><i>F</i><u class="d today"></u></div><div><i>S</i><u class="d fut"></u></div>
+  <div><i>S</i><u class="d fut"></u></div></div><div class="sm2" style="margin-top:10px">Wednesday looked half-logged — left out of the maths. <span class="lnk">That day is right</span></div></div><div class="card" style=""><div class="ov">LAST WEEK'S REPORT</div><div class="h2">You're on pace.</div><div class="sm2">Down 0.5 kg — right in your target band.</div><div class="row sb" style="margin-top:12px"><span class="sm">Your burn, recalibrated</span><b>1,928 → 2,506</b></div></div><div class="card" style=""><div class="ov">NEXT WEEK'S TARGETS</div><div class="row" style="gap:26px;margin-top:6px"><div><b class="xl">2,005</b><div class="sm2">kcal/day</div></div><div><b class="xl">134g</b><div class="sm2">protein</div></div><div><b class="xl">-0.5kg</b><div class="sm2">weekly goal</div></div></div></div><div class="card" style=""><div class="ov">STREAK</div><div class="row sb"><div><b class="xl">12</b> <span class="sm">days · 1 rest day</span></div><span style="font-size:26px">🔥</span></div></div><div class="tabbar"><div class="tab"><span class="ic">◉</span>Today</div><div class="tab on"><span class="ic">〜</span>Progress</div><div class="tab plus">+</div><div class="tab"><span class="ic">🍎</span>Foods</div><div class="tab"><span class="ic">☺</span>You</div></div></div></div>
+      <p class="note">Segmented Week / Weight / Energy / Consistency. The week strip, the weekly report, the half-logged-day override and the streak all live here — together, where they make sense as a set.</p>
+    </figure>
+  
+    <figure class="ph">
+      <figcaption><span class="t">Foods</span><span class="b add">NEW TAB</span></figcaption>
+      <div class="frame"><div class="screen"><div class="hdr"><div><div class="date">YOUR FOOD, IN ONE PLACE</div>
+      <div class="h1">Foods </div></div><div class="av">H</div></div><div class="search">🔍 Search any food</div><div class="card" style=""><div class="ov">MEALS YOU REPEAT</div><div class="mrow"><div><b>Oats + banana + milk</b><div class="sm2">3 items · 431 kcal · 12 days</div></div><span class="plusb">+</span></div><div class="mrow last"><div><b>Rice + dal + yoghurt</b><div class="sm2">3 items · 612 kcal · 7 days</div></div><span class="plusb">+</span></div></div><div class="card" style=""><div class="ov">YOUR GO-TOS</div><div class="mrow"><div><b>Bananas, raw</b><div class="sm2">100 g · 89 kcal · you log this often</div></div><span class="plusb">+</span></div><div class="mrow"><div><b>Greek yoghurt</b><div class="sm2">170 g · 100 kcal · you log this often</div></div><span class="plusb">+</span></div><div class="mrow last"><div><b>Chicken breast</b><div class="sm2">150 g · 248 kcal</div></div><span class="plusb">+</span></div></div><div class="card" style=""><div class="ov">RECENTLY LOGGED</div><div class="mrow last"><div><b>Almond butter</b><div class="sm2">yesterday · dinner</div></div><span class="plusb">+</span></div></div><div class="tabbar"><div class="tab"><span class="ic">◉</span>Today</div><div class="tab"><span class="ic">〜</span>Progress</div><div class="tab plus">+</div><div class="tab on"><span class="ic">🍎</span>Foods</div><div class="tab"><span class="ic">☺</span>You</div></div></div></div>
+      <p class="note">Your own food world. “Meals you repeat” and your go-tos are currently buried inside the log sheet — reachable only while you’re already logging. This makes them a destination.</p>
+    </figure>
+</div>
+
+<h2>4. What moves, and why</h2>
+<table>
+<tr><th>Today loses</th><th>Goes to</th><th>Why</th></tr>
+<tr><td>Fibre strip</td><td>Nutrition detail sheet</td><td>Every app in the field keeps micronutrients off home. Adjacency to calories overstates its rank.</td></tr>
+<tr><td>Streak card</td><td>Header chip + Progress</td><td>Only MyFitnessPal and Cal AI put streaks on home — the two most gamified, and MFP is the one that collapsed.</td></tr>
+<tr><td>Week strip</td><td>Progress → Week</td><td>It’s a multi-day view, and multi-day belongs in Progress in every other app.</td></tr>
+<tr><td>Comeback + rest note as cards</td><td>One shared moment slot</td><td>They’re moments, not furniture, and never need to appear together.</td></tr>
+<tr><td>Meals you repeat</td><td>Foods tab (still in the log sheet too)</td><td>Discoverable outside the act of logging.</td></tr>
+</table>
+
+<h2>5. The rules this sets</h2>
+<div class="rules"><ul>
+<li><b>Today holds at most 5 blocks.</b> A new feature doesn’t get added to Today — it displaces something, or it lives elsewhere.</li>
+<li><b>At most one moment at a time.</b> Never two banners stacked.</li>
+<li><b>Two disclosure levels, never three</b> (Nielsen Norman: past two levels “users often get lost”).</li>
+<li><b>Today’s meals never moves further away.</b> That’s the exact mistake that cost MyFitnessPal 1.7 stars.</li>
+</ul></div>
+
+<h2>6. Two things I want your call on</h2>
+<p class="sec"><b>Water on Today, or into the detail sheet?</b> It’s a daily <i>action</i>, not a statistic, so I lean to keeping it — but it’s the weakest of the five blocks.<br><br>
+<b>Streak as a header chip, or off Today entirely?</b> The evidence mildly favours removing it. The chip is my compromise: present, not competing.</p>
+
+</body></html>
