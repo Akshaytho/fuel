@@ -35,6 +35,7 @@ export type WeekDayState =
   | 'today'    // today, nothing logged yet
   | 'logged'   // recorded in full
   | 'partial'  // has logs, but too few to be a recorded day (spec 0012)
+  | 'rested'   // not logged, but an earned rest day covered it (spec 0013)
   | 'missed';  // past day of this week with no logs
 
 export interface WeekSlot {
@@ -57,6 +58,8 @@ export interface WeekGlance {
   avgKcal: number | null;
   /** days with some logs but too few to count as recorded (spec 0012) */
   partialDays: number;
+  /** days in this week covered by an earned rest day (spec 0013) */
+  restedDays: number;
   /** the plain answer to "how am I doing this week" */
   summary: string;
 }
@@ -99,7 +102,11 @@ export function weekAtAGlance(
   totals: readonly DayTotal[],
   todayISO: string,
   targetKcal: number,
+  /** days an earned rest day is covering (spec 0013) — drawn distinctly, so
+      the strip never presents a covered day as a logged one */
+  restedDays: readonly string[] = [],
 ): WeekGlance {
+  const restSet = new Set(restedDays);
   const byDay = new Map<string, number>();
   for (const t of totals) byDay.set(t.day, (byDay.get(t.day) ?? 0) + t.kcal);
 
@@ -115,6 +122,7 @@ export function weekAtAGlance(
     const cls = i === offset ? (kcal > 0 ? 'full' : 'none') : classifyDay(kcal, targetKcal);
     const state: WeekDayState = cls === 'full' ? 'logged'
       : cls === 'partial' ? 'partial'
+      : restSet.has(day) ? 'rested'
       : i === offset ? 'today'
       : i > offset ? 'future'
       : 'missed';
@@ -123,6 +131,7 @@ export function weekAtAGlance(
 
   const loggedDays = slots.filter((s) => s.state === 'logged').length;
   const partialDays = slots.filter((s) => s.state === 'partial').length;
+  const restedCount = slots.filter((s) => s.state === 'rested').length;
   const onTargetDays = slots.filter((s) => s.onTarget).length;
   const elapsedDays = offset + 1;
   // averages over RECORDED days only, for the same reason the report does
@@ -135,7 +144,7 @@ export function weekAtAGlance(
     ? `No days logged yet this week`
     : `${loggedDays} of ${elapsedDays} day${elapsedDays === 1 ? '' : 's'} logged this week`;
 
-  return { slots, loggedDays, partialDays, onTargetDays, elapsedDays, avgKcal, summary };
+  return { slots, loggedDays, partialDays, restedDays: restedCount, onTargetDays, elapsedDays, avgKcal, summary };
 }
 
 // ---------------------------------------------------------------------------

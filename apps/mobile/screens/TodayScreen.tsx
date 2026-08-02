@@ -23,7 +23,8 @@ export type TodayVM =
       summary: DaySummary;
       entries: EntryVM[];           // flat "TODAY'S MEALS" list per design
       /** B-16: computed from real logged days; current 0 = no streak yet */
-      streak: { current: number; longest: number; isLongest: boolean; loggedToday: boolean };
+      streak: { current: number; longest: number; isLongest: boolean; loggedToday: boolean;
+                restDaysAvailable: number; restedDays: string[] };
       /** B-16: real logged water; liters is the actual sum, never a stub 0 */
       water: { liters: number; goalLiters: number };
       /** the line under the rings — TONE included, because the same words in
@@ -33,6 +34,8 @@ export type TodayVM =
       week: { days: WeekStripDay[]; summary: string; footnote?: string | undefined };
       /** set when a user with history returns after a gap — replaces first-run copy */
       comeback?: Comeback | undefined;
+      /** spec 0013: an earned rest day just covered a missed day */
+      restNote?: { title: string; body: string } | undefined;
       /** design 6a: set on the day this user's targets land, once per day */
       celebration?: Celebration | undefined;
     };
@@ -197,6 +200,10 @@ export function TodayScreen({
           <>
             <EmptyNutritionCard theme={theme} targets={vm.targets}
               dayLabel={vm.dateLabel.split('· ')[1] ?? ''} returning={hasHistory} />
+            {vm.restNote !== undefined && (
+              <ComebackCard testID="rest-note" theme={theme}
+                title={vm.restNote.title} body={vm.restNote.body} />
+            )}
             {vm.comeback !== undefined && (
               <ComebackCard testID="comeback-card" theme={theme}
                 title={vm.comeback.title} body={vm.comeback.body} />
@@ -227,6 +234,10 @@ export function TodayScreen({
               {vm.coach !== undefined && (
                 <CoachStrip testID="coach-strip" theme={theme} text={vm.coach.text} tone={vm.coach.tone} />
               )}
+              {vm.restNote !== undefined && (
+                <ComebackCard testID="rest-note" theme={theme}
+                  title={vm.restNote.title} body={vm.restNote.body} />
+              )}
             </View>
 
             <View style={{ flexDirection: 'row', gap: space.s4 }}>
@@ -237,8 +248,11 @@ export function TodayScreen({
                   // Precedence matters: on day one current===longest===1, which
                   // read as "1 days · your longest" — grammatically wrong AND a
                   // hollow celebration. Singular first, only brag from day 2.
+                  // Rest days outrank the "longest" brag: a run held together
+                  // by a rest day must say so before it congratulates anyone.
                   vm.streak.current === 0 ? str.streakStart
                     : vm.streak.current === 1 ? str.day
+                    : vm.streak.restedDays.length > 0 ? str.daysWithRest(vm.streak.restedDays.length)
                     : vm.streak.isLongest ? str.daysLongest
                     : str.days
                 } />

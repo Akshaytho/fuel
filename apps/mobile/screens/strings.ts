@@ -33,6 +33,13 @@ export const str = {
   days: 'days',
   day: 'day',
   daysLongest: 'days · your longest',
+  // spec 0013 — a rest day is shown, never hidden. "8 days · 1 rest day" is
+  // two true numbers; "9 days" would be a lie about her own week.
+  daysWithRest: (n: number) => `days · ${n} rest day${n === 1 ? '' : 's'}`,
+  restSaved: 'Your streak held',
+  restSavedSub: (n: number) => n === 1
+    ? 'A rest day covered the day you missed — you earned it by logging 7 in a row.'
+    : `Rest days covered the ${n} days you missed — you earned them by logging 7 in a row.`,
   streakStart: 'Log today to start',
   streakToday: 'Logged today',
   streakAlive: 'Log today to keep it',

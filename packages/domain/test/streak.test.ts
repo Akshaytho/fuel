@@ -29,6 +29,7 @@ describe('computeStreak (B-16: real data, never fabricated)', () => {
   it('no history → zero streak, not "1 day"', () => {
     expect(computeStreak([], '2026-07-28')).toEqual({
       current: 0, longest: 0, isLongest: false, loggedToday: false,
+      restDaysAvailable: 0, restedDays: [],
     });
   });
 

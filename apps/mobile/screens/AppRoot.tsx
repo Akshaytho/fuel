@@ -249,9 +249,16 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     // logic (packages/domain/src/narrative.ts) so the tone is testable.
     const allEntries = store.allEntries();
     const glance = weekAtAGlance(
-      allEntries.map((e) => ({ day: e.day, kcal: e.kcal })), day, targets.kcal);
+      allEntries.map((e) => ({ day: e.day, kcal: e.kcal })), day, targets.kcal,
+      streak.restedDays);
     const note = dayNote({ summary, targets, week: glance });
-    const comeback = entries.length === 0
+    // A covered gap is not a comeback — the run never broke. Showing
+    // "Welcome back" AND "Your streak held" would be two apps talking at once.
+    const restCovered = streak.restedDays.some((d) => {
+      const back = daysBetween(d, day);
+      return back >= 0 && back <= 1;
+    });
+    const comeback = entries.length === 0 && !restCovered
       ? comebackNote(allEntries.map((e) => e.day), day, streak)
       : null;
     // Once per day, and never again after it has been dismissed this session.
@@ -291,6 +298,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         footnote: glance.avgKcal === null ? undefined : str.weekAvg(glance.avgKcal),
       },
       comeback: comeback ?? undefined,
+      // spec 0013: name the save on the day it happens, so a covered day is
+      // never something the app quietly absorbed on her behalf
+      restNote: restCovered
+        ? { title: str.restSaved, body: str.restSavedSub(streak.restedDays.length) }
+        : undefined,
       celebration: celebration ?? undefined,
     };
   }, [stage, plan, tick, celebratedDay, celebrationSeen]);
