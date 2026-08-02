@@ -8,3 +8,4 @@ export * from './trends';
 export * from './report';
 export * from './gotos';
 export * from './narrative';
+export * from './combos';

@@ -5,7 +5,7 @@ import {
   scalePer100g, summarizeConsumed, computeTargets, waterLitersFor, mealForHour, localDayISO,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
-  weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey,
+  weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey, repeatMealsFor,
   weekAtAGlance, dayNote, comebackNote, celebrationFor,
   type Targets, type Meal, type Profile, type Celebration,
 } from '@fuel/domain';
@@ -515,6 +515,12 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     if (!plan) return [];
     return yesterdaysItems(store.allEntries(), todayISO());
   }, [plan, tick, sheet]);
+  /** spec 0014: the combinations this person actually repeats. Derived from
+      the log, stored nowhere — nothing to name, maintain, sync or go stale. */
+  const repeatMeals = useMemo(() => {
+    if (!plan) return [];
+    return repeatMealsFor(store.allEntries(), currentMeal(), todayISO());
+  }, [plan, tick, sheet]);
 
   /** One tap = log it again exactly as last time (grams AND macros come from
       that most-recent entry, so it works offline and needs no re-fetch). */
@@ -530,6 +536,25 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     setSheet('none');
     bump();
     alert(logStr.quickAddedTitle, logStr.quickAddedBody(item.food_name, Math.round(item.kcal)));
+    await runSync();
+  };
+
+  /** One tap logs the whole plate, at the median portion of every time they
+      ate it. Same write path as copy-yesterday, so it is offline-safe. */
+  const logRepeat = async (id: string) => {
+    const combo = repeatMeals.find((r) => r.id === id);
+    if (!combo) return;
+    for (const it of combo.items) {
+      await store.add({
+        day: todayISO(), food_id: it.food_id, food_name: it.food_name,
+        grams: it.grams, kcal: it.kcal, protein_g: it.protein_g,
+        carbs_g: it.carbs_g, fat_g: it.fat_g,
+        source: 'manual', meal: currentMeal(), logged_at: new Date().toISOString(),
+      });
+    }
+    setSheet('none');
+    bump();
+    alert(logStr.repeatLoggedTitle, logStr.repeatLoggedBody(combo.label, combo.items.length, combo.kcal));
     await runSync();
   };
 
@@ -902,6 +927,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
                 subtitle: `${Math.round(g.grams)} g · ${Math.round(g.kcal)} kcal`,
                 often: g.count >= 3,
               }))}
+              repeats={repeatMeals.map((r) => ({
+                id: r.id, label: r.label,
+                subtitle: logStr.repeatSubtitle(r.items.length, r.kcal, r.days),
+              }))}
+              onLogRepeat={(id) => void logRepeat(id)}
               yesterdayCount={yesterdayItems.length}
               onSearchFocus={() => setSheet('search')}
               onScan={soon('Scan')} onDescribe={soon('Describe')} onLabel={soon('Label')}

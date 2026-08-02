@@ -21,4 +21,11 @@ export const logStr = {
   breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
   kcalCaps: 'KCAL', proteinCaps: 'PROTEIN', carbsCaps: 'CARBS', fatCaps: 'FAT',
   logTo: (meal: string, kcal: number) => `Log to ${meal} · ${kcal} kcal`,
+  // spec 0014 — combinations the user actually repeats
+  repeatsHeader: 'MEALS YOU REPEAT',
+  repeatSubtitle: (items: number, kcal: number, days: number) =>
+    `${items} items · ${kcal.toLocaleString('en-US')} kcal · ${days} days`,
+  repeatLoggedTitle: 'Logged',
+  repeatLoggedBody: (label: string, n: number, kcal: number) =>
+    `${label} — ${n} items, ${kcal.toLocaleString('en-US')} kcal.`,
 } as const;

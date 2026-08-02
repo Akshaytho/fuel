@@ -64,8 +64,11 @@ export function IconTile({ theme, label, tint, bg, icon, onPress }: {
 }
 
 /** Food row with one-tap + (go-tos and search results). */
-export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = true, addTestID }: {
+export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = true, addTestID, titleLines = 1 }: {
   theme: Theme; title?: string; titleNode?: React.ReactNode; subtitle: string; onAdd: () => void; divider?: boolean; addTestID?: string;
+  /** repeat-meal rows name every food in the plate, so one line loses the
+      identity of the thing you are about to log (spec 0014) */
+  titleLines?: number;
 }) {
   return (
     <View style={{
@@ -74,7 +77,7 @@ export function FoodRow({ theme, title, titleNode, subtitle, onAdd, divider = tr
     }}>
       <View style={{ flex: 1, gap: 2 }}>
         {titleNode ?? (
-          <Text numberOfLines={1} style={{ fontSize: t.body.size, fontWeight: '600', color: theme.label }}>{title}</Text>
+          <Text numberOfLines={titleLines} style={{ fontSize: t.body.size, fontWeight: '600', color: theme.label }}>{title}</Text>
         )}
         <Text numberOfLines={1} style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{subtitle}</Text>
       </View>

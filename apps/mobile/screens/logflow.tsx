@@ -22,6 +22,10 @@ export interface LogSheetProps {
   onDescribe: () => void;  // TODO(stub): P2 AI
   onLabel: () => void;     // TODO(stub): P2 label photo
   onSaved: () => void;     // TODO(stub): backlog saved foods
+  /** spec 0014: combinations this person repeats, for the current meal. The
+      more often they cook the same thing, the closer it gets to one tap. */
+  repeats: { id: string; label: string; subtitle: string }[];
+  onLogRepeat: (id: string) => void;
   /** how many items yesterday held — 0 hides the affordance (spec 0011) */
   yesterdayCount: number;
   onCopyYesterday: () => void;
@@ -57,6 +61,21 @@ export function LogSheet(p: LogSheetProps) {
           <IconTile theme={theme} label={s.label} tint={theme.macroProtein} bg={theme.softOrangeBg} icon={<LabelIcon color={theme.macroProtein} />} onPress={p.onLabel} />
           <IconTile theme={theme} label={s.saved} tint={theme.macroCarbs} bg={theme.softPurpleBg} icon={<BookmarkIcon color={theme.macroCarbs} />} onPress={p.onSaved} />
         </View>
+        {p.repeats.length > 0 && (
+          <View style={{ gap: space.s2 }}>
+            <Text style={{ fontSize: t.footnote.size, fontWeight: '600', letterSpacing: 0.8, color: theme.secondaryLabel }}>
+              {s.repeatsHeader}
+            </Text>
+            <Card theme={theme}>
+              {p.repeats.map((r, i) => (
+                <FoodRow key={r.id} theme={theme} title={r.label} subtitle={r.subtitle}
+                  titleLines={2}
+                  addTestID={`repeat-${i}`}
+                  onAdd={() => p.onLogRepeat(r.id)} divider={i < p.repeats.length - 1} />
+              ))}
+            </Card>
+          </View>
+        )}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontSize: t.footnote.size, fontWeight: '600', letterSpacing: 0.8, color: theme.secondaryLabel }}>
             {s.goTos(p.mealLabel)}
