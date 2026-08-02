@@ -122,6 +122,28 @@ Five blocks. Nothing more than one tap deep.
 3. **Two disclosure levels, never three** (NN/g).
 4. **Today's meals never moves further away.** MFP's mistake is not repeatable.
 
+## Built, and the two consequences worth reviewing
+
+Today and Progress are built and proven (`ia-today-check.mjs`,
+`dark-mode-check.mjs` now covering 16 screens). Measured before and after, on
+a real account at 390×890:
+
+| | before | after |
+|---|---|---|
+| Blocks on Today | 9 possible / 7 rendered | **5** |
+| Content height | 1,065 px | **844 px** |
+| Where TODAY'S MEALS starts | 705 px | **450 px** — above the fold |
+
+Two consequences I did not plan for, both worth a decision:
+
+1. **Logging a weigh-in is one tap deeper.** Progress opens on Week, so
+   weight is Progress → Weight → + Log weight. Weighing is a frequent action;
+   if this bites, the fix is a weigh-in affordance in the Week segment.
+2. **The + button is no longer centred.** With three destinations the bar is
+   Today · Progress · ⊕ · You, which puts ⊕ at 62% across rather than 50%.
+   Options: accept it, float ⊕ above the bar, or restore a fourth destination
+   (which is what the Foods tab would have been).
+
 ## 5. Open questions for Harish
 
 - Water on Today, or into the nutrition detail sheet? It is a daily action, so

@@ -78,6 +78,7 @@ const logFood = async (query, meal, portionIdx = 1) => {
 };
 const weighIn = async (kg) => {
   await page.getByTestId('tab-trends').click();
+  await page.getByTestId('seg-1').click();   // IA 0001: Weight is segment 1 now
   await page.getByTestId('log-weight-cta').first().click();
   await page.getByTestId('weight-kg-input').fill(String(kg));
   await page.getByTestId('weight-save').click();
@@ -143,14 +144,19 @@ for (const [n, label] of [[4, 'fri'], [5, 'sat'], [6, 'sun']]) {
 await step('the week strip does not claim Thursday as a logged day', async () => {
   await page.waitForTimeout(600);
   await shot('sun-week-strip');
+  // IA 0001: the week strip moved to Progress. Walk there by tapping the tab.
+  await page.getByTestId('tab-trends').click();
+  await page.getByTestId('week-summary').waitFor({ timeout: 9000 });
   const wk = (await page.getByTestId('week-summary').textContent()).trim();
-  console.log(`WEEK STRIP: "${wk}"`);
+  console.log(`WEEK STRIP (on Progress): "${wk}"`);
   if (!/6 of 7 days logged this week/.test(wk)) {
     throw new Error(`week strip counted the half-logged Thursday: ${wk}`);
   }
   const dashed = await page.getByTestId('week-dot-3').evaluate((el) => getComputedStyle(el).borderStyle);
   console.log(`THU dot borderStyle = ${dashed}`);
   if (!/dashed/.test(dashed)) throw new Error('Thursday is not drawn as a half-logged day');
+  await page.getByTestId('tab-today').click();
+  await page.waitForTimeout(700);
 });
 
 let before = null;
@@ -158,7 +164,7 @@ await step('next Monday: the Report excludes Thursday and SAYS SO', async () => 
   await ctx.clock.setFixedTime(at(7, 9, 0));
   await page.reload();
   await page.getByText(/Day 8/).waitFor({ timeout: 12000 });
-  await page.getByTestId('tab-report').click();
+  await page.getByTestId('tab-trends').click();  // IA 0001: Report merged into Progress
   await page.getByTestId('report-headline').waitFor({ timeout: 8000 });
   await shot('report-excluded');
   const days = (await page.getByTestId('report-days').textContent()).trim();
@@ -195,7 +201,7 @@ await step("her word wins: confirming the day changes the maths", async () => {
 await step('the choice survives killing the app', async () => {
   await page.reload();
   await page.getByText(/Day 8/).waitFor({ timeout: 12000 });
-  await page.getByTestId('tab-report').click();
+  await page.getByTestId('tab-trends').click();  // IA 0001: Report merged into Progress
   await page.getByTestId('report-headline').waitFor({ timeout: 8000 });
   const days = (await page.getByTestId('report-days').textContent()).trim();
   console.log(`REPORT days logged after relaunch: ${days}`);

@@ -1,6 +1,8 @@
 /** Trends screen strings (spec 0009) — centralized until i18next. */
 export const tr = {
-  title: 'Trends',
+  title: 'Progress',
+  segWeek: 'Week',
+  streakCaps: 'STREAK',
   segWeight: 'Weight',
   segEnergy: 'Energy',
   segConsistency: 'Consistency',

@@ -3,14 +3,19 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
 import {
   TabBar, Segmented, TrendLineChart, DayBarChart, WeekBarChart,
-  FadeSlideIn, pressedStyle,
+  FadeSlideIn, pressedStyle, WeekStrip, type WeekStripDay,
 } from '@fuel/ui';
 import { tr } from './trendsStrings';
+import { ReportBody, type ReportVM } from './ReportScreen';
 
 /** Trends (spec 0009, design 4f). Everything rendered here is REAL data —
     the VM is computed in AppRoot from stores via tested domain functions. */
 
 export interface TrendsVM {
+  /** IA 0001: the 7-dot week, moved off Today */
+  week: { days: WeekStripDay[]; summary: string; footnote?: string | undefined };
+  /** the run, explained in full — the chip on Today only carries the number */
+  streak: { current: number; suffix: string };
   weight: {
     heroKg: number | null;            // latest trend weight; null = no weigh-ins
     deltaKg: number | null;           // vs first weigh-in in window
@@ -38,6 +43,11 @@ export interface TrendsVM {
 export interface TrendsScreenProps {
   theme: Theme;
   vm: TrendsVM;
+  /** IA 0001: Report merged in here as the Week segment */
+  report: ReportVM;
+  onConfirmDay: (day: string) => void;
+  onAcceptTargets: () => void;
+  onAdjustTargets: () => void;
   onLogWeight: () => void;
   onTab: (i: number) => void;
   onLog: () => void;
@@ -83,7 +93,11 @@ function Empty({ theme, head, body, cta, onCta, testID }: {
   );
 }
 
-export function TrendsScreen({ theme, vm, onLogWeight, onTab, onLog }: TrendsScreenProps) {
+export function TrendsScreen({
+  theme, vm, report, onConfirmDay, onAcceptTargets, onAdjustTargets, onLogWeight, onTab, onLog,
+}: TrendsScreenProps) {
+  // Week is FIRST: "how has this week gone" is the question people actually
+  // arrive with, and it is the one Today no longer answers (IA 0001).
   const [seg, setSeg] = useState(0);
   const w = vm.weight;
   return (
@@ -93,9 +107,34 @@ export function TrendsScreen({ theme, vm, onLogWeight, onTab, onLog }: TrendsScr
           {tr.title}
         </Text>
         <Segmented theme={theme} value={seg} onChange={setSeg}
-          options={[tr.segWeight, tr.segEnergy, tr.segConsistency]} />
+          options={[tr.segWeek, tr.segWeight, tr.segEnergy, tr.segConsistency]} />
 
         {seg === 0 && (
+          <FadeSlideIn key="week" style={{ gap: space.s4 }}>
+            <WeekStrip testID="week-summary" theme={theme} days={vm.week.days}
+              summary={vm.week.summary} footnote={vm.week.footnote} />
+            {vm.streak.current > 0 && (
+              <Card theme={theme}>
+                <Text style={{ fontSize: t.footnote.size, fontWeight: '700', letterSpacing: 0.8, color: theme.secondaryLabel }}>
+                  {tr.streakCaps}
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text testID="streak-detail" style={{ fontSize: 28, fontWeight: '800', color: theme.label }}>
+                    {vm.streak.current}
+                    <Text style={{ fontSize: t.subhead.size, fontWeight: '400', color: theme.secondaryLabel }}>
+                      {' '}{vm.streak.suffix}
+                    </Text>
+                  </Text>
+                  <Text style={{ fontSize: 26 }}>🔥</Text>
+                </View>
+              </Card>
+            )}
+            <ReportBody theme={theme} vm={report} onConfirmDay={onConfirmDay}
+              onAccept={onAcceptTargets} onAdjust={onAdjustTargets} />
+          </FadeSlideIn>
+        )}
+
+        {seg === 1 && (
           <FadeSlideIn key="w" style={{ gap: space.s4 }}>
             {w.heroKg === null ? (
               <Empty theme={theme} head={tr.weightEmptyHead} body={tr.weightEmptyBody}
@@ -141,7 +180,7 @@ export function TrendsScreen({ theme, vm, onLogWeight, onTab, onLog }: TrendsScr
           </FadeSlideIn>
         )}
 
-        {seg === 1 && (
+        {seg === 2 && (
           <FadeSlideIn key="e" style={{ gap: space.s4 }}>
             {vm.energy.days.every((d) => d <= 0) ? (
               <Empty theme={theme} head={tr.energyEmptyHead} body={tr.energyEmptyBody} />
@@ -169,7 +208,7 @@ export function TrendsScreen({ theme, vm, onLogWeight, onTab, onLog }: TrendsScr
           </FadeSlideIn>
         )}
 
-        {seg === 2 && (
+        {seg === 3 && (
           <FadeSlideIn key="c" style={{ gap: space.s4 }}>
             {!vm.consistency.anyLogs ? (
               <Empty theme={theme} head={tr.consistencyEmptyHead} body={tr.consistencyEmptyBody} />

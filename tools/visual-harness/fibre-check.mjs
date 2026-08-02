@@ -87,7 +87,16 @@ const logFood = async (query, meal, portionIdx = 1) => {
   await page.getByTestId('log-cta').click();
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 9000 });
 };
-const strip = async () => (await page.getByTestId('fibre-strip').innerText()).replace(/\n/g, ' | ');
+/** IA 0001: fibre lives one tap inside the nutrition card, not on the surface.
+    Open the sheet, read it, close it — the way a person would. */
+const strip = async () => {
+  await page.getByTestId('nutrition-card').click();
+  await page.getByTestId('fibre-detail').waitFor({ timeout: 9000 });
+  const txt = (await page.getByTestId('fibre-detail').innerText()).replace(/\n/g, ' | ');
+  await page.getByTestId('detail-close').click();
+  await page.waitForTimeout(600);
+  return txt;
+};
 
 const EMAIL = `fibre-${Date.now()}@fuel.test`;
 console.log('ACCOUNT ' + EMAIL);
@@ -117,6 +126,9 @@ await step('a food that REPORTS fibre gives an exact total', async () => {
   console.log(`STRIP (known only): ${s}`);
   if (/at least/.test(s)) throw new Error('hedged a total we actually know: ' + s);
   if (!/from 100% of today's food/.test(s)) throw new Error('coverage not stated as complete: ' + s);
+  // and it must NOT be on the Today surface any more
+  const surface = await page.locator('body').innerText();
+  if (/Fibre/.test(surface)) throw new Error('fibre is back on the Today surface');
   if (!/\d+(\.\d+)? g \/ 22 g/.test(s)) throw new Error('target is not the 14 g/1000 kcal figure: ' + s);
 });
 

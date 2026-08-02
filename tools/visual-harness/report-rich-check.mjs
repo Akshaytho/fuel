@@ -121,7 +121,7 @@ await step('sign in → restore pulls the seeded life, straight to Today', async
 });
 
 await step('Report shows a VERDICT with recalibrated burn (not locked)', async () => {
-  await page.getByTestId('tab-report').click();
+  await page.getByTestId('tab-trends').click();  // IA 0001: Report merged into Progress
   await page.getByTestId('report-headline').waitFor({ timeout: 6000 });
   const head = (await page.getByTestId('report-headline').textContent()).trim();
   if (head === 'Your report is almost ready.') throw new Error('report locked despite full seeded week');

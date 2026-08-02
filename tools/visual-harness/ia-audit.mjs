@@ -99,7 +99,7 @@ out.push(await measure('Log sheet'));
 await page.mouse.click(195, 40);
 await page.waitForTimeout(500);
 
-for (const [tab, wait] of [['tab-trends','Trends'], ['tab-report','Report'], ['tab-you','CURRENT GOAL']]) {
+for (const [tab, wait] of [['tab-trends','Progress'], ['tab-you','CURRENT GOAL']]) {
   await page.getByTestId(tab).click();
   await page.getByText(wait).first().waitFor({ timeout: 9000 });
   await page.waitForTimeout(900);

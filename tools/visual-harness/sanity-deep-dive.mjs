@@ -118,13 +118,14 @@ await step('two taps of water → 0.5 L', async () => {
   await page.getByTestId('water-add').click();
   await page.getByTestId('water-add').click();
   await page.waitForFunction(() =>
-    document.querySelector('[data-testid="water-value"]')?.textContent?.includes('0.5'), null, { timeout: 5000 });
+    document.querySelector('[data-testid="water-add-value"]')?.textContent?.includes('0.5'), null, { timeout: 5000 });
   await shot('today-water-05');
 });
 
 /* 3 ─ THE ADAPTATION PROOF: weigh in at 60.0, watch the plan retune */
 await step('weigh in 60.0 kg → target on Today drops 1,553 → 1,463', async () => {
   await page.getByTestId('tab-trends').click();
+  await page.getByTestId('seg-1').click();   // IA 0001: Weight is segment 1 now
   await page.getByTestId('log-weight-cta').first().click();
   await page.getByTestId('weight-kg-input').waitFor({ timeout: 5000 });
   await page.getByTestId('weight-kg-input').fill('60');
@@ -188,7 +189,7 @@ await step('sign back in → history RESTORED, onboarding skipped', async () => 
   await page.getByText('1,463').first().waitFor({ timeout: 6000 });
   await page.getByText(/Dinner ·/).waitFor({ timeout: 6000 });
   await page.waitForFunction(() =>
-    document.querySelector('[data-testid="water-value"]')?.textContent?.includes('0.5'), null, { timeout: 6000 });
+    document.querySelector('[data-testid="water-add-value"]')?.textContent?.includes('0.5'), null, { timeout: 6000 });
   await shot('today-restored-from-server');
 });
 

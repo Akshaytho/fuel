@@ -120,6 +120,7 @@ await step('07:00 onboard (f/28/165/68.2/light/lose) → plan 1,553', async () =
 /* ── 07:05 morning weigh-in, then CORRECT it (change) ────────────── */
 await step('07:05 weigh in 68.2', async () => {
   await page.getByTestId('tab-trends').click();
+  await page.getByTestId('seg-1').click();   // IA 0001: Weight is segment 1 now
   await page.getByTestId('log-weight-cta').first().click();
   await page.getByTestId('weight-kg-input').fill('68.2');
   await page.getByTestId('weight-save').click();
@@ -158,14 +159,14 @@ await step('10:30 water ×3 → 0.8 L on screen, 750 ml on server', async () => 
   await page.getByTestId('water-add').click();
   await page.getByTestId('water-add').click();
   await page.waitForFunction(() =>
-    document.querySelector('[data-testid="water-value"]')?.textContent?.includes('0.8'), null, { timeout: 5000 });
+    document.querySelector('[data-testid="water-add-value"]')?.textContent?.includes('0.8'), null, { timeout: 5000 });
   await shot('1030-water-3');
   await ledger('water ×3', { waters: '3', water_ml: '750' });
 });
 await step('10:31 REMOVE: undo one water → 0.5 L, server row DELETED', async () => {
   await page.getByTestId('water-add').click({ delay: 600 }); // long-press = undo
   await page.waitForFunction(() =>
-    document.querySelector('[data-testid="water-value"]')?.textContent?.includes('0.5'), null, { timeout: 5000 });
+    document.querySelector('[data-testid="water-add-value"]')?.textContent?.includes('0.5'), null, { timeout: 5000 });
   await shot('1031-water-undone');
   await ledger('water undo', { waters: '2', water_ml: '500' });
 });
@@ -230,15 +231,19 @@ await step('20:00 dinner: chicken', async () => {
 });
 
 /* ── 22:00 review the day: Trends reacts to everything ───────────── */
-await step('22:00 Trends: weight 67.8, energy bar for today, consistency alive', async () => {
+await step('22:00 Progress: week, weight 67.8, energy bar for today, consistency alive', async () => {
   await page.getByTestId('tab-trends').click();
-  await page.getByText('67.8').first().waitFor({ timeout: 5000 });
+  // IA 0001: Progress opens on Week; the weight hero is one segment across.
+  await page.getByTestId('week-summary').waitFor({ timeout: 9000 });
+  await shot('2200-progress-week');
+  await page.getByTestId('seg-1').click();
+  await page.getByText('67.8').first().waitFor({ timeout: 9000 });
   await shot('2200-trends-weight');
-  await page.getByText('Energy', { exact: true }).click();
-  await page.getByText('Calories eaten, last 14 days').waitFor({ timeout: 4000 });
+  await page.getByTestId('seg-2').click();
+  await page.getByText('Calories eaten, last 14 days').waitFor({ timeout: 6000 });
   await shot('2200-trends-energy');
-  await page.getByText('Consistency', { exact: true }).click();
-  await page.getByText('Protein days hit, by week').waitFor({ timeout: 4000 });
+  await page.getByTestId('seg-3').click();
+  await page.getByText('Protein days hit, by week').waitFor({ timeout: 6000 });
   await shot('2200-trends-consistency');
 });
 

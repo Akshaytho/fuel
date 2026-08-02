@@ -215,8 +215,11 @@ await step('D5 the app greets a returning user after a missed day', async () => 
   await page.reload();
   await page.getByText(/Day 5/).waitFor({ timeout: 12000 });
   await shot('d5-return-after-gap');
-  const streakTxt = await page.getByTestId('streak-value').textContent().catch(() => 'n/a');
-  console.log(`D5 streak after a missed day: "${streakTxt.trim()}"`);
+  // IA 0001: the streak is a header CHIP now; the full run detail lives on
+  // Progress. On an empty day with a broken streak the chip is absent, which
+  // is correct — there is no run to show.
+  const streakTxt = await page.getByTestId('streak-chip').textContent().catch(() => 'none');
+  console.log(`D5 streak chip after a missed day: "${streakTxt.trim()}"`);
   const t = await page.locator('body').innerText();
   if (/lost|broken|failed/i.test(t)) note(5, 'Ravi', 'comeback copy is punishing');
   // FIXED (was FRICTION d5): a user with history is not a first-timer.
@@ -226,10 +229,11 @@ await step('D5 the app greets a returning user after a missed day', async () => 
   if (!/best run is 3 days/.test(comeback)) throw new Error('the app forgot his 3-day run: ' + comeback);
   if (/Log your first meal/.test(t)) throw new Error('returning user is being shown first-run copy');
   if (/Day 1 of your streak starts now/.test(t)) throw new Error('streak-start row shown to a returning user');
-  // FIXED (was FRICTION d5): "how many days did I log this week", on Today.
-  const wk = (await page.getByTestId('week-summary').textContent()).trim();
-  console.log(`D5 week strip: "${wk}"`);
-  if (!/\d+ of \d+ days? logged this week/.test(wk)) throw new Error('no week-at-a-glance: ' + wk);
+  // FIXED (was FRICTION d5), then MOVED by IA 0001: the week strip lives on
+  // Progress now, not Today. Assert it has left Today; the Progress-side
+  // assertion is in ia-progress-check.mjs.
+  const onToday = await page.locator('body').innerText();
+  if (/days logged this week/.test(onToday)) throw new Error('week strip is still on Today');
 });
 
 await step('D5 he logs a protein-heavy day and weighs in', async () => {
@@ -257,6 +261,7 @@ await step('D5 he logs a protein-heavy day and weighs in', async () => {
     throw new Error('celebration replayed after relaunch — it is not once-per-day');
   }
   await page.getByTestId('tab-trends').click();
+  await page.getByTestId('seg-1').click();   // IA 0001: Weight is segment 1 now
   await page.getByTestId('log-weight-cta').first().click();
   await page.getByTestId('weight-kg-input').fill('70.4');
   await page.getByTestId('weight-save').click();
@@ -268,13 +273,13 @@ await step('D5 he logs a protein-heavy day and weighs in', async () => {
 });
 
 await step('D5 the week so far is visible somewhere', async () => {
-  await page.getByTestId('tab-report').click();
+  await page.getByTestId('tab-trends').click();  // IA 0001: Report merged into Progress
   await page.getByTestId('report-headline').waitFor({ timeout: 8000 });
   const head = (await page.getByTestId('report-headline').textContent()).trim();
   console.log('D5 report headline: ' + head);
   await shot('d5-report');
   await page.getByTestId('tab-trends').click();
-  await page.getByText('Energy', { exact: true }).click();
+  await page.getByTestId('seg-2').click();   // IA 0001: Energy is segment 2 now
   await shot('d5-trends-energy');
 });
 

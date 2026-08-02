@@ -176,15 +176,26 @@ await step('Today in dark, empty and with data', async () => {
   await checkScreen('today-with-data');
 });
 
-await step('Trends, Report and Profile in dark', async () => {
+await step('the nutrition DETAIL sheet in dark (IA 0001 — new surface)', async () => {
+  await page.getByTestId('nutrition-card').click();
+  await page.getByTestId('fibre-detail').waitFor({ timeout: 9000 });
+  await checkScreen('detail-sheet');
+  await page.getByTestId('detail-close').click();
+  await page.waitForTimeout(600);
+});
+
+await step('Progress (all four segments) and Profile in dark', async () => {
   await page.getByTestId('tab-trends').click();
-  await page.getByText('Trends').first().waitFor({ timeout: 5000 });
-  await checkScreen('trends');
-  await page.getByTestId('tab-report').click();
-  await page.getByTestId('report-headline').waitFor({ timeout: 5000 });
-  await checkScreen('report');
+  // Week is the default segment and carries the strip + streak + the report
+  await page.getByTestId('week-summary').waitFor({ timeout: 9000 });
+  await checkScreen('progress-week');
+  for (const [i, name] of [[1, 'progress-weight'], [2, 'progress-energy'], [3, 'progress-consistency']]) {
+    await page.getByTestId(`seg-${i}`).click();
+    await page.waitForTimeout(500);
+    await checkScreen(name);
+  }
   await page.getByTestId('tab-you').click();
-  await page.getByText('CURRENT GOAL').waitFor({ timeout: 5000 });
+  await page.getByText('CURRENT GOAL').waitFor({ timeout: 9000 });
   await checkScreen('profile');
 });
 

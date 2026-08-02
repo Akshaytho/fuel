@@ -4,10 +4,18 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
 import { pressedStyle } from './motion';
 
-/** Production bottom bar: Today · Trends · [big +] · Report · You. */
+/**
+ * Bottom bar: Today · Progress · [big +] · You.
+ *
+ * IA 0001 collapsed Trends and Report into one Progress destination — every
+ * competitor has exactly one "how am I doing over time" surface, and Fuel had
+ * two, neither complete alone. Three destinations sits inside Material's 3–5
+ * guidance, and Apple's rule that tabs are for major AREAS, not actions, is
+ * why the + is a floating control rather than a fourth tab.
+ */
 export interface TabBarProps {
   theme: Theme;
-  activeIndex: number;          // 0..3 across the four tabs
+  activeIndex: number;          // 0..2 across the three tabs
   onTab: (index: number) => void;
   onLog: () => void;
   /** Tabs whose screen doesn't exist yet. They stay tappable (tapping
@@ -53,8 +61,7 @@ function Icon({ name, color }: { name: string; color: string }) {
 export function TabBar({ theme, activeIndex, onTab, onLog, soonIndices = [] }: TabBarProps) {
   const tabs = [
     { name: 'today', label: 'Today' },
-    { name: 'trends', label: 'Trends' },
-    { name: 'report', label: 'Report' },
+    { name: 'trends', label: 'Progress' },
     { name: 'you', label: 'You' },
   ];
   const item = (i: number) => {
@@ -95,7 +102,6 @@ export function TabBar({ theme, activeIndex, onTab, onLog, soonIndices = [] }: T
         </Pressable>
       </View>
       {item(2)}
-      {item(3)}
     </View>
   );
 }

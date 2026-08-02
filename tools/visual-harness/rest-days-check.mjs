@@ -68,7 +68,16 @@ const logFood = async (meal) => {
   await page.getByTestId('log-cta').click();
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 8000 });
 };
-const streakText = async () => (await page.getByTestId('streak-value').locator('..').innerText()).replace(/\n/g, ' ');
+/** IA 0001: the run detail ("8 days · 1 rest day") lives on Progress now.
+    Walk there by tapping, read it, and come back — no shortcuts. */
+const streakText = async () => {
+  await page.getByTestId('tab-trends').click();
+  await page.getByTestId('streak-detail').waitFor({ timeout: 9000 });
+  const txt = (await page.getByTestId('streak-detail').innerText()).replace(/\n/g, ' ');
+  await page.getByTestId('tab-today').click();
+  await page.waitForTimeout(600);
+  return txt;
+};
 
 const EMAIL = `rest-${Date.now()}@fuel.test`;
 console.log('ACCOUNT ' + EMAIL);
@@ -107,7 +116,7 @@ await step('after 7 days the streak reads 7 and a rest day is banked', async () 
   const txt = await streakText();
   console.log(`STREAK after 7 days: "${txt.trim()}"`);
   await shot('day7-streak-7');
-  if (!/^Streak/.test(txt.trim()) || !/\b7\b/.test(txt)) throw new Error('streak is not 7: ' + txt);
+  if (!/\b7\b/.test(txt)) throw new Error('streak is not 7: ' + txt);
 });
 
 await step('DAY 8: she is ill and never opens the app', async () => {
@@ -129,8 +138,10 @@ await step('DAY 9: the streak HELD, and the app says why', async () => {
   if (!/earned it/i.test(note)) throw new Error('does not say the rest day was earned: ' + note);
   // Day 9 is the Tuesday of a NEW week: Monday was the rested day. The strip
   // must draw Monday as RESTED — neither logged (a lie) nor missed (unfair).
+  await page.getByTestId('tab-trends').click();
+  await page.getByTestId('week-summary').waitFor({ timeout: 9000 });
   const wk = (await page.getByTestId('week-summary').textContent()).trim();
-  console.log(`WEEK STRIP on day 9: "${wk}"`);
+  console.log(`WEEK STRIP on day 9 (Progress): "${wk}"`);
   if (!/No days logged yet this week/.test(wk)) {
     throw new Error('week strip counted the rested day as a logged day: ' + wk);
   }
@@ -142,6 +153,8 @@ await step('DAY 9: the streak HELD, and the app says why', async () => {
   console.log(`MONDAY dot: ${JSON.stringify(mon)}`);
   if (mon.kids === 0) throw new Error('the rested Monday has no rest marker on it');
   if (!/255, 159, 10/.test(mon.border)) throw new Error('rested day is not drawn as a rest day: ' + mon.border);
+  await page.getByTestId('tab-today').click();
+  await page.waitForTimeout(600);
 });
 
 await step('logging today continues the run to 8, and SAYS a rest day was used', async () => {

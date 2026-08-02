@@ -153,15 +153,23 @@ await step('B-18: avatar shows MY initial, not a hardcoded "A"', async () => {
   if (initial !== 'J') throw new Error(`avatar showed "${initial}" for a journey-* account`);
 });
 await step('B-16: streak reads 1 from REAL logged days (not a hardcoded 1)', async () => {
-  const v = (await page.getByTestId('streak-value').textContent()).trim();
-  if (v !== '1 day') throw new Error(`streak showed "${v}" after exactly one logged day`);
+  // IA 0001: the chip carries the number on Today; the sentence ("1 day")
+  // lives on Progress. Check both, by tapping to get there.
+  const chip = (await page.getByTestId('streak-chip').textContent()).trim();
+  if (chip !== '1') throw new Error(`streak chip showed "${chip}" after exactly one logged day`);
+  await page.getByTestId('tab-trends').click();
+  await page.getByTestId('streak-detail').waitFor({ timeout: 9000 });
+  const v = (await page.getByTestId('streak-detail').innerText()).replace(/\n/g, ' ').trim();
+  if (!/\b1 day\b/.test(v)) throw new Error(`Progress streak showed "${v}" after one logged day`);
+  await page.getByTestId('tab-today').click();
+  await page.waitForTimeout(600);
 });
 await step('B-16: water is a LIVE control — two taps make it 0.5 L', async () => {
-  const wtxt = () => page.getByTestId('water-value').textContent().then((x) => x.trim());
+  const wtxt = () => page.getByTestId('water-add-value').textContent().then((x) => x.trim());
   const first = await wtxt();
   if (first !== '0 / 2.5 L') throw new Error(`fresh day showed ${first}`);
   const settle = (want) => page.waitForFunction(
-    (w) => document.querySelector('[data-testid="water-value"]')?.textContent?.trim() === w,
+    (w) => document.querySelector('[data-testid="water-add-value"]')?.textContent?.trim() === w,
     want, { timeout: 5000 });
   await page.getByTestId('water-add').click();
   await settle('0.3 / 2.5 L');                                    // 250 ml
@@ -176,7 +184,7 @@ await step('RELAUNCH: splash again, then straight to Today, data intact', async 
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 9000 });
   await page.getByText('1,553').first().waitFor();
   await page.waitForFunction(                                      // water survived relaunch
-    () => document.querySelector('[data-testid="water-value"]')?.textContent?.trim() === '0.5 / 2.5 L',
+    () => document.querySelector('[data-testid="water-add-value"]')?.textContent?.trim() === '0.5 / 2.5 L',
     null, { timeout: 6000 });
   if (await page.getByText('What are we working toward?').isVisible().catch(() => false)) {
     throw new Error('onboarding shown again');
@@ -198,9 +206,12 @@ await page.screenshot({ path: 'out/j5-relaunch.png' });
 
 /* ---------- spec 0008: profile, export, DELETE (the full GDPR arc) ---------- */
 /* ---------- spec 0009: Trends, walked by taps ---------- */
-await step('Trends tab is LIVE: opens with Weight empty state (no weigh-ins yet)', async () => {
+await step('Progress tab is LIVE: opens on Week, and Weight is one tap away', async () => {
   await page.getByTestId('tab-trends').click();
-  await page.getByText('Your weight trend starts with one number.').waitFor({ timeout: 5000 });
+  // IA 0001: Progress opens on Week — the question people actually arrive with.
+  await page.getByTestId('week-summary').waitFor({ timeout: 9000 });
+  await page.getByTestId('seg-1').click();
+  await page.getByText('Your weight trend starts with one number.').waitFor({ timeout: 9000 });
 });
 await page.waitForTimeout(600);            // let the fade land before shooting
 await page.screenshot({ path: 'out/j8-trends-empty.png' });
@@ -219,13 +230,13 @@ await step('slope tile is an HONEST dash with one data point, never a fake numbe
   if (!slope.startsWith('—')) throw new Error(`slope tile fabricated "${slope}" from one weigh-in`);
 });
 await step('Energy segment: real bar day + target line footnote', async () => {
-  await page.getByText('Energy', { exact: true }).click();
+  await page.getByTestId('seg-2').click();   // IA 0001: Energy is segment 2 now
   await page.getByText('Calories eaten, last 14 days').waitFor({ timeout: 4000 });
   await page.getByText(/line = your 1,553 kcal target/).waitFor();
   await page.getByTestId('avg-eaten-tile').waitFor();
 });
 await step('Consistency segment: protein weeks chart from real logs', async () => {
-  await page.getByText('Consistency', { exact: true }).click();
+  await page.getByTestId('seg-3').click();   // IA 0001: Consistency is segment 3 now
   await page.getByText('Protein days hit, by week').waitFor({ timeout: 4000 });
   await page.getByTestId('logged-pct-tile').waitFor();
 });
@@ -266,7 +277,7 @@ await step('spec 0011: remove the duplicate again (cleanup keeps later steps exa
 });
 
 await step('spec 0010: Report tab is LIVE; fresh user sees the honest locked state', async () => {
-  await page.getByTestId('tab-report').click();
+  await page.getByTestId('tab-trends').click();  // IA 0001: Report merged into Progress
   await page.getByText('Your report is almost ready.').waitFor({ timeout: 5000 });
   await page.getByText(/Log meals on \d+ more day/).waitFor({ timeout: 4000 });
   await page.getByText(/Weigh in \d+ more day/).waitFor({ timeout: 4000 });
@@ -286,6 +297,7 @@ await step('back to Today via the tab bar (tap, not URL)', async () => {
 /* ---------- QA RC-3 (D-4): a weigh-in RETUNES the whole plan ---------- */
 await step('D-4: logging 60.0 kg recomputes targets — Today drops 1,553 -> 1,463', async () => {
   await page.getByTestId('tab-trends').click();
+  await page.getByTestId('seg-1').click();   // IA 0001: Weight is segment 1 now
   await page.getByTestId('log-weight-cta').first().click();
   await page.getByTestId('weight-kg-input').waitFor({ timeout: 4000 });
   await human(page.getByTestId('weight-kg-input'), '60');

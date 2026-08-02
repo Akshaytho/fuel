@@ -19,7 +19,7 @@ import {
 import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { TrendsScreen, type TrendsVM } from './TrendsScreen';
-import { ReportScreen, type ReportVM } from './ReportScreen';
+import { type ReportVM } from './ReportScreen';
 import { rp } from './reportStrings';
 import { tr } from './trendsStrings';
 import { LogSheet, SearchScreen, PortionSheet } from './logflow';
@@ -63,7 +63,7 @@ const CELEBRATED_KEY = 'fuel.celebrated.v1';
 /** Spec 0012: days the user vouched for despite looking half-logged. */
 const CONFIRMED_DAYS_KEY = 'fuel.confirmedDays.v1';
 
-type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'report' | 'profile';
+type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'profile';
 
 export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter, supabaseUrl, supabaseAnonKey, alert, share }: AppRootProps) {
   const auth: Auth = useMemo(() => createAuth(supabaseUrl, supabaseAnonKey, kv), []);
@@ -245,9 +245,8 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     const streak = computeStreak(store.allEntries().map((e) => e.day), day);
     const pending = store.pendingCount + water.pendingCount + weighIns.pendingCount;
 
-    // Week at a glance + the honest line under the rings + the two moments
-    // the five-day simulation proved were missing. All of it is pure domain
-    // logic (packages/domain/src/narrative.ts) so the tone is testable.
+    // The week glance still feeds dayNote's perspective copy — it just no
+    // longer RENDERS on Today. The 7-dot strip moved to Progress (IA 0001).
     const allEntries = store.allEntries();
     const glance = weekAtAGlance(
       allEntries.map((e) => ({ day: e.day, kcal: e.kcal })), day, targets.kcal,
@@ -292,19 +291,20 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       streak,
       // B-16: the actual litres this user logged today (was always 0).
       water: { liters: water.litersForDay(day), goalLiters: plan.water_l },
-      // The line under the rings now reads the WHOLE day and the week behind
-      // it. It used to be an inline template literal that said "Nice — 0 g
-      // protein to go." on a day that ran 2,067 kcal over (five-days sim,
-      // day 3). Tone is domain logic now, and it is unit-tested.
-      coach: note === null ? undefined : { text: note.text, tone: note.tone },
-      week: {
-        days: glance.slots.map((s) => ({ day: s.day, letter: s.letter, state: s.state, onTarget: s.onTarget })),
-        summary: glance.summary,
-        footnote: glance.avgKcal === null ? undefined : str.weekAvg(glance.avgKcal),
-      },
-      comeback: comeback ?? undefined,
-      // spec 0013: name the save on the day it happens, so a covered day is
-      // never something the app quietly absorbed on her behalf
+      // IA 0001: ONE moment slot. Modelling it as a union rather than three
+      // optional fields makes "never two banners" a type guarantee instead of
+      // a habit. Priority is timeliness: a rest day that just saved the run,
+      // then a comeback after a gap, then the everyday line under the rings
+      // (whose tone is domain logic, and unit-tested).
+      moment: restCovered
+        ? { kind: 'note' as const, testID: 'rest-note',
+            title: str.restSaved, body: str.restSavedSub(streak.restedDays.length) }
+        : comeback !== null
+          ? { kind: 'note' as const, testID: 'comeback-card',
+              title: comeback.title, body: comeback.body }
+          : note === null ? undefined : { kind: 'coach' as const, text: note.text, tone: note.tone },
+      // spec 0015 lives in the DETAIL SHEET now, not on the surface — every
+      // app in the field keeps micronutrients off the home screen.
       fibre: entries.length === 0 || fib.targetG === null ? undefined : {
         value: fib.allUnknown ? str.fibreUnknownValue(fib.targetG)
           : fib.complete ? str.fibreValue(fib.grams, fib.targetG)
@@ -315,14 +315,13 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         progress: fib.progress ?? undefined,
         unknown: fib.allUnknown,
       },
-      restNote: restCovered
-        ? { title: str.restSaved, body: str.restSavedSub(streak.restedDays.length) }
-        : undefined,
       celebration: celebration ?? undefined,
     };
   }, [stage, plan, tick, celebratedDay, celebrationSeen]);
 
   const EMPTY_TRENDS: TrendsVM = {
+    week: { days: [], summary: '' },
+    streak: { current: 0, suffix: '' },
     weight: { heroKg: null, deltaKg: null, deltaGood: true, sinceLabel: '', raw: [], trend: [], xLabels: [], slopeKgPerWeek: null },
     energy: { days: [], target: 0, xLabels: [], avgEaten: null },
     consistency: { weeks: [], lastWeekHits: 0, loggedPct: 0, anyLogs: false },
@@ -337,6 +336,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     const startDay = localDayISO(new Date(plan.createdAt ?? Date.now()));
     const entries = store.allEntries();
     const entryDays = entries.map((e) => e.day);
+    const streakP = computeStreak(entryDays, today);
 
     // weight — WINDOWED to the last 90 days (rule 0c: a 2-year user has 730
     // weigh-ins; rendering them all is 1,460 SVG nodes and a flat unreadable
@@ -379,7 +379,20 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     const dayProtein = dailyTotals(entries.map((e) => ({ day: e.day, value: e.protein_g })), 56, today);
     const weeks = proteinDaysByWeek(dayProtein, targets.protein_g, 8, today);
 
+    const glanceP = weekAtAGlance(
+      entries.map((e) => ({ day: e.day, kcal: e.kcal })), today, targets.kcal, streakP.restedDays);
     return {
+      week: {
+        days: glanceP.slots.map((sl) => ({ day: sl.day, letter: sl.letter, state: sl.state, onTarget: sl.onTarget })),
+        summary: glanceP.summary,
+        footnote: glanceP.avgKcal === null ? undefined : str.weekAvg(glanceP.avgKcal),
+      },
+      streak: {
+        current: streakP.current,
+        suffix: streakP.current === 1 ? str.day
+          : streakP.restedDays.length > 0 ? str.daysWithRest(streakP.restedDays.length)
+          : streakP.isLongest ? str.daysLongest : str.days,
+      },
       weight: {
         heroKg: last ? last.trendKg : null,
         deltaKg,
@@ -420,7 +433,9 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       },
       rangeLabel: '', raw: [], trend: [],
     };
-    if (stage !== 'report' || !plan) return empty;
+    // IA 0001: the report renders inside Progress's Week segment, so it must
+    // be computed on the 'trends' stage too.
+    if (stage !== 'trends' || !plan) return empty;
     const today = todayISO();
     const entries = store.allEntries();
     const report = weeklyReport({
@@ -632,10 +647,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   };
 
   // All four tabs are real destinations now (spec 0010 closed the last stub).
+  // IA 0001: three destinations. Report merged into Progress, so index 2 is
+  // now You — the old 'report' stage no longer exists.
   const onTab = (i: number) => {
     if (i === 0) { setStage('today'); return; }
     if (i === 1) { setStage('trends'); return; }
-    if (i === 2) { setStage('report'); return; }
     setStage('profile');
   };
 
@@ -797,7 +813,17 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
         <FadeSlideIn key="trends">
-          <TrendsScreen theme={theme} vm={trendsVM}
+          <TrendsScreen theme={theme} vm={trendsVM} report={reportVM}
+            onConfirmDay={(d: string) => { void confirmDay(d); }}
+            onAcceptTargets={() => void acceptTargets()}
+            onAdjustTargets={() => {
+              const pr = planRef.current?.profile;
+              if (pr) {
+                setGoal(pr.goal);
+                setAbout({ sex: pr.sex, age: String(pr.age_years), height: String(pr.height_cm), weight: String(pr.weight_kg), activity: pr.activity });
+              }
+              setStage('goal');
+            }}
             onLogWeight={() => setWeightOpen(true)}
             onTab={onTab}
             onLog={() => { setStage('today'); setSheet('log'); }} />
@@ -825,25 +851,6 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
             </View>
           </Sheet>
         </Modal>
-      </View>
-    );
-  }
-
-  if (stage === 'report' && plan) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.bg }}>
-        <ReportScreen theme={theme} vm={reportVM} onConfirmDay={(d) => { void confirmDay(d); }}
-          onAccept={() => void acceptTargets()}
-          onAdjust={() => {
-            const pr = planRef.current?.profile;
-            if (pr) {
-              setGoal(pr.goal);
-              setAbout({ sex: pr.sex, age: String(pr.age_years), height: String(pr.height_cm), weight: String(pr.weight_kg), activity: pr.activity });
-            }
-            setStage('goal');
-          }}
-          onTab={onTab}
-          onLog={() => { setStage('today'); setSheet('log'); }} />
       </View>
     );
   }
@@ -914,7 +921,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         onUndoWater={() => void undoWater()}
         onRetrySync={() => void runSync()}
         onRemoveEntry={(id) => setEntryToRemove(id)}
-        onOpenTrends={() => setStage('trends')}
+        onOpenProgress={() => setStage('trends')}
         onDismissCelebration={() => { void dismissCelebration(); }} />
       <Modal visible={entryToRemove !== null} transparent animationType="slide" onRequestClose={() => setEntryToRemove(null)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setEntryToRemove(null)} />

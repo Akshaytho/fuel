@@ -269,3 +269,67 @@ export function NutrientStrip({ theme, label, value, caption, progress, unknown,
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Header streak chip + water row (IA 0001)
+// ---------------------------------------------------------------------------
+
+/**
+ * The streak, demoted from a card to a chip.
+ *
+ * Only MyFitnessPal and Cal AI put streaks on the home screen — the two most
+ * gamified apps in the category, and MFP is the one whose home-screen rewrite
+ * cost it 1.7 stars. The chip keeps the motivation without letting it compete
+ * with the day's actual numbers. Tapping it goes to Progress, where the run
+ * is explained in full.
+ */
+export function StreakChip({ theme, days, restDays = 0, onPress, testID }: {
+  theme: Theme; days: number; restDays?: number; onPress?: (() => void) | undefined; testID?: string;
+}) {
+  if (days <= 0) return null;
+  return (
+    <Pressable testID={testID} onPress={onPress} disabled={!onPress}
+      style={({ pressed }) => [{
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: theme.softOrangeBg, borderRadius: radius.pill,
+        paddingVertical: 3, paddingHorizontal: space.s2,
+      }, pressedStyle(pressed)]}>
+      <FlameIcon color={theme.macroProtein} size={13} />
+      <Text style={{ fontSize: t.caption.size, fontWeight: '700', color: theme.label }}>
+        {days}{restDays > 0 ? '*' : ''}
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Water as a single slim row rather than a card.
+ *
+ * It stays on Today because it is a daily ACTION, not a statistic — the whole
+ * value is that adding a glass costs one tap without leaving the screen.
+ * Long-press undoes, same contract as the old card.
+ */
+export function WaterRow({ theme, litres, goalLitres, addLabel, label, onAdd, onUndo, testID }: {
+  theme: Theme; litres: number; goalLitres: number; addLabel: string; label: string;
+  onAdd: () => void; onUndo: () => void; testID?: string;
+}) {
+  const pct = goalLitres > 0 ? Math.max(0, Math.min(1, litres / goalLitres)) : 0;
+  return (
+    <Pressable testID={testID} onPress={onAdd} onLongPress={onUndo}
+      style={({ pressed }) => [{
+        flexDirection: 'row', alignItems: 'center', gap: space.s3,
+        backgroundColor: theme.card, borderRadius: radius.card,
+        paddingVertical: space.s3, paddingHorizontal: space.s4,
+      }, pressedStyle(pressed)]}>
+      <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.label }}>{label}</Text>
+      <View style={{ flex: 1, height: 6, borderRadius: radius.pill, backgroundColor: theme.separator, overflow: 'hidden' }}>
+        <View style={{ width: `${pct * 100}%`, height: '100%', borderRadius: radius.pill, backgroundColor: theme.water }} />
+      </View>
+      <Text testID={testID ? `${testID}-value` : undefined}
+        style={{ fontSize: t.subhead.size, fontWeight: '700', color: theme.label }}>
+        {litres} / {goalLitres} L
+      </Text>
+      <Text style={{ fontSize: t.subhead.size, fontWeight: '700', color: theme.tint }}>{addLabel}</Text>
+    </Pressable>
+  );
+}

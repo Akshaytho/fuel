@@ -171,7 +171,7 @@ await step('P0-B consequence: entry SURVIVES the UTC rollover (the 05:30 IST van
   await page.getByText("TODAY'S MEALS").waitFor({ timeout: 12000 });
   const shown = await page.locator('text=/\\d+ g · \\d+ kcal/').count();
   if (shown === 0) throw new Error('the logged meal vanished when UTC rolled over — P0-B is back');
-  const water = (await page.getByTestId('water-value').textContent()).trim();
+  const water = (await page.getByTestId('water-add-value').textContent()).trim();
   if (water.startsWith('0 /')) throw new Error('water vanished when UTC rolled over');
 });
 

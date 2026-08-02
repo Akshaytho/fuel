@@ -3,6 +3,14 @@ export const str = {
   summary: 'Summary',
   nutrition: 'Nutrition',
   onPace: 'On pace ›',
+  // IA 0001: the card is now a door. "Detail ›" says so; the over-target state
+  // still takes precedence, because that is the more important fact.
+  detail: 'Detail ›',
+  detailTitle: 'Today in detail',
+  detailClose: 'Done',
+  calories: 'Calories',
+  carbs: 'Carbs',
+  fat: 'Fat',
   overPace: 'Over ›',
   dayN: (n: number) => `Day ${n}`,     // B-17: real day number, not always "Day 1"
   calsLeft: 'Calories left',
