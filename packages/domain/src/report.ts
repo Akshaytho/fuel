@@ -19,6 +19,32 @@ export const KCAL_PER_KG = 7700;
 /** A single week may not move the estimate beyond ±30% of the formula. */
 export const TDEE_BLEND_CLAMP = 0.30;
 export const MIN_LOGGED_DAYS = 4;
+
+/**
+ * Below this fraction of the day's calorie target, a day is treated as
+ * HALF-RECORDED rather than as a day of light eating (spec 0012).
+ *
+ * The bug this exists to kill: intake used to be averaged over "days with any
+ * logs", so a day where someone logged breakfast and got busy counted as a
+ * 150-calorie day of eating. Measured on a real week — six days at 1,800 kcal
+ * plus one forgotten day — that dropped measured TDEE 2,313 → 2,078 and the
+ * proposed target 1,850 → 1,662. One forgotten dinner cut her recommended
+ * intake by 188 kcal, and it compounds week over week.
+ *
+ * The error is one-directional by nature: forgetting to log only ever removes
+ * calories. So exclusion is the safe default, and the user gets to overrule it.
+ */
+export const PARTIAL_DAY_FRACTION = 0.5;
+
+export type DayClass = 'none' | 'partial' | 'full';
+
+/** Boundary is inclusive at the top: exactly half the target is a real light
+    day, not a suspected half-log. */
+export function classifyDay(kcal: number, targetKcal: number): DayClass {
+  if (!Number.isFinite(kcal) || kcal <= 0) return 'none';
+  if (!Number.isFinite(targetKcal) || targetKcal <= 0) return 'full';
+  return kcal >= targetKcal * PARTIAL_DAY_FRACTION ? 'full' : 'partial';
+}
 export const MIN_WEIGH_SPAN_DAYS = 5;
 
 export interface WeeklyGoalBand { min: number; max: number }
@@ -42,14 +68,22 @@ export interface WeeklyReportInput {
   dayKcal: readonly DayValue[];
   /** all weigh-ins (day, kg) */
   weighIns: readonly WeightPoint[];
+  /** days the user has explicitly confirmed were real, despite looking
+      half-logged (spec 0012). Their word beats our heuristic. */
+  confirmedDays?: readonly string[];
 }
 
 export interface WeeklyReport {
   weekNumber: number;
   weekStart: string;            // Monday
   weekEnd: string;              // Sunday
-  loggedDays: number;           // 0–7
+  loggedDays: number;           // 0–7, EXCLUDING unconfirmed partial days
   loggedFlags: boolean[];       // Mon..Sun, for the 7 pills
+  /** Mon..Sun classification, so the pills can show three states not two */
+  dayClasses: DayClass[];
+  /** days left out of the maths because they look half-recorded; the report
+      names these to the user and offers to include them */
+  excludedDays: string[];
   verdict: Verdict;
   /** measured Δ of the SMOOTHED weight across the window, kg (null if gated) */
   deltaKg: number | null;
@@ -92,14 +126,22 @@ export function targetsFromTdee(measuredTdee: number, p: Profile): Targets {
 }
 
 export function weeklyReport(input: WeeklyReportInput): WeeklyReport {
-  const { profile, startDay, today, dayKcal, weighIns } = input;
+  const { profile, currentTargets, startDay, today, dayKcal, weighIns } = input;
+  const confirmed = new Set(input.confirmedDays ?? []);
   const { start, end } = lastCompleteWeek(today);
   const weekNumber = Math.max(1, Math.floor(daysBetween(mondayOf(startDay), start) / 7) + 1);
 
   // days logged (Mon..Sun pills)
   const kcalByDay = new Map(dayKcal.map((d) => [d.day, d.value]));
-  const loggedFlags = Array.from({ length: 7 }, (_, i) => (kcalByDay.get(addDays(start, i)) ?? 0) > 0);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  // spec 0012: a half-recorded day is neither a logged day nor a light day.
+  const dayClasses = weekDays.map((d) => {
+    const raw = classifyDay(kcalByDay.get(d) ?? 0, currentTargets.kcal);
+    return raw === 'partial' && confirmed.has(d) ? 'full' : raw;
+  });
+  const loggedFlags = dayClasses.map((c) => c === 'full');
   const loggedDays = loggedFlags.filter(Boolean).length;
+  const excludedDays = weekDays.filter((_, i) => dayClasses[i] === 'partial');
 
   // weigh-in window: the week ±3 days, smoothed endpoints
   const winStart = addDays(start, -3);
@@ -124,6 +166,7 @@ export function weeklyReport(input: WeeklyReportInput): WeeklyReport {
   if (missing.loggedDays !== undefined || missing.weighSpanDays !== undefined) {
     return {
       weekNumber, weekStart: start, weekEnd: end, loggedDays, loggedFlags,
+      dayClasses, excludedDays,
       verdict: 'insufficient', deltaKg: null, missing,
       measuredTdee: null, formulaTdee: fTdee, blendedTdee: null,
       proposedTargets: null, weeklyGoalKg,
@@ -139,8 +182,11 @@ export function weeklyReport(input: WeeklyReportInput): WeeklyReport {
   // accuracy (found by the hand-computed test). Display rounds at the edge.
   const rawDeltaKg = last.trendKg - first.trendKg;
 
-  const loggedVals = Array.from({ length: 7 }, (_, i) => kcalByDay.get(addDays(start, i)) ?? 0)
-    .filter((v) => v > 0);
+  // Only days that were actually recorded in full (or that the user confirmed)
+  // may speak for what she ate. See PARTIAL_DAY_FRACTION.
+  const loggedVals = weekDays
+    .filter((_, i) => dayClasses[i] === 'full')
+    .map((d) => kcalByDay.get(d) ?? 0);
   const avgIntake = loggedVals.reduce((a, b) => a + b, 0) / loggedVals.length;
 
   const measured = Math.round(avgIntake - (rawDeltaKg * KCAL_PER_KG) / spanDays);
@@ -157,6 +203,7 @@ export function weeklyReport(input: WeeklyReportInput): WeeklyReport {
 
   return {
     weekNumber, weekStart: start, weekEnd: end, loggedDays, loggedFlags,
+    dayClasses, excludedDays,
     verdict, deltaKg: weeklyRate, missing: null,
     measuredTdee: measured, formulaTdee: fTdee, blendedTdee: blended,
     proposedTargets: targetsFromTdee(blended, profile),

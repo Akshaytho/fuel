@@ -18,6 +18,8 @@ export interface ReportVM {
 export interface ReportScreenProps {
   theme: Theme;
   vm: ReportVM;
+  /** spec 0012: the user vouches for a day we suspected was half-logged */
+  onConfirmDay: (day: string) => void;
   onAccept: () => void;
   onAdjust: () => void;
   onTab: (i: number) => void;
@@ -35,7 +37,7 @@ function Card({ theme, children }: { theme: Theme; children: React.ReactNode }) 
   );
 }
 
-export function ReportScreen({ theme, vm, onAccept, onAdjust, onTab, onLog }: ReportScreenProps) {
+export function ReportScreen({ theme, vm, onConfirmDay, onAccept, onAdjust, onTab, onLog }: ReportScreenProps) {
   const r = vm.report;
   const locked = r.verdict === 'insufficient';
   const head = locked ? rp.headLocked
@@ -100,14 +102,39 @@ export function ReportScreen({ theme, vm, onAccept, onAdjust, onTab, onLog }: Re
               </Text>
             </View>
             <View style={{ flexDirection: 'row', gap: space.s2 }}>
-              {r.loggedFlags.map((hit, i) => (
-                <View key={i} style={{
+              {r.dayClasses.map((cls, i) => (
+                // THREE states, not two: a half-recorded day is neither a
+                // logged day nor a missed one, and the pills must not lie
+                // about which it was (spec 0012).
+                <View key={i} testID={`report-pill-${i}`} style={{
                   flex: 1, height: 34, borderRadius: radius.md,
-                  backgroundColor: hit ? theme.success : theme.bg,
-                  borderWidth: hit ? 0 : 1, borderColor: theme.separator,
+                  backgroundColor: cls === 'full' ? theme.success
+                    : cls === 'partial' ? theme.softOrangeBg : theme.bg,
+                  borderWidth: cls === 'full' ? 0 : cls === 'partial' ? 2 : 1,
+                  borderColor: cls === 'partial' ? theme.macroProtein : theme.separator,
                 }} />
               ))}
             </View>
+            {r.excludedDays.length > 0 && (
+              <View testID="report-excluded" style={{ gap: space.s2 }}>
+                <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.label }}>
+                  {rp.excludedTitle(r.excludedDays.length)}
+                </Text>
+                <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{rp.excludedBody}</Text>
+                {r.excludedDays.map((d) => (
+                  <Pressable key={d} testID={`confirm-day-${d}`} onPress={() => onConfirmDay(d)}
+                    style={({ pressed }) => [{
+                      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                      paddingVertical: space.s2,
+                    }, pressedStyle(pressed)]}>
+                    <Text style={{ fontSize: t.subhead.size, color: theme.label }}>{rp.dayName(d)}</Text>
+                    <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.tint }}>
+                      {rp.excludedConfirm}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
             {locked && r.missing && (
               <View style={{ gap: 4 }}>
                 {r.missing.loggedDays !== undefined && (

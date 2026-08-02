@@ -15,7 +15,7 @@ import { FlameIcon } from './icons';
 // Week strip
 // ---------------------------------------------------------------------------
 
-export type WeekDotState = 'future' | 'today' | 'logged' | 'missed';
+export type WeekDotState = 'future' | 'today' | 'logged' | 'partial' | 'missed';
 export interface WeekStripDay { day: string; letter: string; state: WeekDotState; onTarget: boolean }
 
 /**
@@ -58,8 +58,12 @@ export function WeekStrip({ theme, days, summary, footnote, onPress, testID }: {
                 borderWidth: d.state === 'logged' && d.onTarget ? 0 : 2,
                 borderColor: d.state === 'today' ? theme.tint
                   : d.state === 'logged' ? theme.macroProtein
+                  // a half-logged day is drawn like a missed one, dashed, so
+                  // the week never claims credit for a day it can't vouch for
+                  : d.state === 'partial' ? theme.secondaryLabel
                   : d.state === 'missed' ? theme.separator
                   : 'transparent',
+                borderStyle: d.state === 'partial' ? 'dashed' : 'solid',
                 alignItems: 'center', justifyContent: 'center',
               }}
             >
@@ -71,6 +75,9 @@ export function WeekStrip({ theme, days, summary, footnote, onPress, testID }: {
               )}
               {d.state === 'future' && (
                 <View style={{ width: 5, height: 5, borderRadius: radius.pill, backgroundColor: theme.separator }} />
+              )}
+              {d.state === 'partial' && (
+                <View style={{ width: 7, height: 2, borderRadius: radius.pill, backgroundColor: theme.secondaryLabel }} />
               )}
             </View>
           </View>

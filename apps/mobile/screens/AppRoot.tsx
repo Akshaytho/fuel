@@ -59,6 +59,8 @@ const PROFILE_KEY = 'fuel.profile.v1';
 const PROFILE_DIRTY_KEY = 'fuel.profile.dirty.v1';
 /** Design 6a: the celebration shows ONCE per day. This remembers which day. */
 const CELEBRATED_KEY = 'fuel.celebrated.v1';
+/** Spec 0012: days the user vouched for despite looking half-logged. */
+const CONFIRMED_DAYS_KEY = 'fuel.confirmedDays.v1';
 
 type Stage = 'boot' | 'welcome' | 'goal' | 'about' | 'plan' | 'today' | 'trends' | 'report' | 'profile';
 
@@ -112,6 +114,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       reopening the app does NOT replay the celebration. */
   const [celebratedDay, setCelebratedDay] = useState('');
   const [celebrationSeen, setCelebrationSeen] = useState(false);
+  const [confirmedDays, setConfirmedDays] = useState<string[]>([]);
 
   const runSync = async () => {
     try {
@@ -140,6 +143,13 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     try { await kv.setItem(CELEBRATED_KEY, day); } catch { /* best effort */ }
   };
 
+  /** Spec 0012: the user overrules our half-logged heuristic for one day. */
+  const confirmDay = async (day: string) => {
+    const next = confirmedDays.includes(day) ? confirmedDays : [...confirmedDays, day];
+    setConfirmedDays(next);
+    try { await kv.setItem(CONFIRMED_DAYS_KEY, JSON.stringify(next)); } catch { /* best effort */ }
+  };
+
   useEffect(() => {
     (async () => {
       const t0 = Date.now();
@@ -152,6 +162,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       // onboarding. Boot can no longer crash or hang on bad bytes.
       const oldest = store.allEntries().map((e) => e.day).sort()[0];
       setCelebratedDay((await kv.getItem(CELEBRATED_KEY)) ?? '');
+      // Never let a bad string here break boot — worst case, we re-ask.
+      try {
+        const raw = JSON.parse((await kv.getItem(CONFIRMED_DAYS_KEY)) || '[]');
+        if (Array.isArray(raw)) setConfirmedDays(raw.filter((d) => typeof d === 'string'));
+      } catch { /* corrupt list is the same as no list */ }
       const parsed = normalizeStoredPlan(await kv.getItem(PROFILE_KEY), oldest);
       const returning = parsed !== null;
       if (parsed) setPlan(parsed);
@@ -371,6 +386,8 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       report: {
         weekNumber: 1, weekStart: '', weekEnd: '', loggedDays: 0,
         loggedFlags: [false, false, false, false, false, false, false],
+        dayClasses: ['none', 'none', 'none', 'none', 'none', 'none', 'none'],
+        excludedDays: [],
         verdict: 'insufficient', deltaKg: null, missing: { loggedDays: 4, weighSpanDays: 5 },
         measuredTdee: null, formulaTdee: 0, blendedTdee: null, proposedTargets: null, weeklyGoalKg: 0,
       },
@@ -386,7 +403,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       today,
       dayKcal: dailyTotals(entries.map((e) => ({ day: e.day, value: e.kcal })), 21, today),
       weighIns: weighIns.all().map((w) => ({ day: w.day, kg: w.kg })),
+      // spec 0012: days the user has vouched for, despite looking half-logged
+      confirmedDays,
     });
+    void confirmedDays;   // memo dependency, read above
     const md = (d: string) => {
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
       return m ? new Date(Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!))
@@ -406,7 +426,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
       raw: pts.map((p) => ({ x: frac(p.day), y: p.kg })),
       trend: sm.map((p) => ({ x: frac(p.day), y: p.trendKg })),
     };
-  }, [stage, plan, tick]);
+  }, [stage, plan, tick, confirmedDays]);
 
   const acceptTargets = async () => {
     const proposed = reportVM.report.proposedTargets;
@@ -756,7 +776,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   if (stage === 'report' && plan) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.bg }}>
-        <ReportScreen theme={theme} vm={reportVM}
+        <ReportScreen theme={theme} vm={reportVM} onConfirmDay={(d) => { void confirmDay(d); }}
           onAccept={() => void acceptTargets()}
           onAdjust={() => {
             const pr = planRef.current?.profile;

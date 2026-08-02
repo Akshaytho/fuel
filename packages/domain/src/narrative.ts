@@ -21,6 +21,7 @@
  */
 import { DaySummary, Targets } from './types';
 import { Streak, daysBetween } from './streak';
+import { classifyDay } from './report';
 
 /** One day's logged energy, as stored. */
 export interface DayTotal { day: string; kcal: number }
@@ -32,7 +33,8 @@ export interface DayTotal { day: string; kcal: number }
 export type WeekDayState =
   | 'future'   // hasn't happened yet this week
   | 'today'    // today, nothing logged yet
-  | 'logged'   // has logs
+  | 'logged'   // recorded in full
+  | 'partial'  // has logs, but too few to be a recorded day (spec 0012)
   | 'missed';  // past day of this week with no logs
 
 export interface WeekSlot {
@@ -53,6 +55,8 @@ export interface WeekGlance {
   elapsedDays: number;
   /** mean kcal across LOGGED days only; null when nothing is logged */
   avgKcal: number | null;
+  /** days with some logs but too few to count as recorded (spec 0012) */
+  partialDays: number;
   /** the plain answer to "how am I doing this week" */
   summary: string;
 }
@@ -106,8 +110,11 @@ export function weekAtAGlance(
   for (let i = 0; i < 7; i += 1) {
     const day = shiftDay(monday, i);
     const kcal = byDay.get(day) ?? 0;
-    const logged = kcal > 0;
-    const state: WeekDayState = logged ? 'logged'
+    // Today is exempt: a day still in progress is SUPPOSED to be incomplete,
+    // and flagging breakfast as "half-logged" at 9am would be nonsense.
+    const cls = i === offset ? (kcal > 0 ? 'full' : 'none') : classifyDay(kcal, targetKcal);
+    const state: WeekDayState = cls === 'full' ? 'logged'
+      : cls === 'partial' ? 'partial'
       : i === offset ? 'today'
       : i > offset ? 'future'
       : 'missed';
@@ -115,9 +122,11 @@ export function weekAtAGlance(
   }
 
   const loggedDays = slots.filter((s) => s.state === 'logged').length;
+  const partialDays = slots.filter((s) => s.state === 'partial').length;
   const onTargetDays = slots.filter((s) => s.onTarget).length;
   const elapsedDays = offset + 1;
-  const loggedKcal = slots.filter((s) => s.kcal > 0).map((s) => s.kcal);
+  // averages over RECORDED days only, for the same reason the report does
+  const loggedKcal = slots.filter((s) => s.state === 'logged').map((s) => s.kcal);
   const avgKcal = loggedKcal.length > 0
     ? Math.round(loggedKcal.reduce((a, b) => a + b, 0) / loggedKcal.length)
     : null;
@@ -126,7 +135,7 @@ export function weekAtAGlance(
     ? `No days logged yet this week`
     : `${loggedDays} of ${elapsedDays} day${elapsedDays === 1 ? '' : 's'} logged this week`;
 
-  return { slots, loggedDays, onTargetDays, elapsedDays, avgKcal, summary };
+  return { slots, loggedDays, partialDays, onTargetDays, elapsedDays, avgKcal, summary };
 }
 
 // ---------------------------------------------------------------------------

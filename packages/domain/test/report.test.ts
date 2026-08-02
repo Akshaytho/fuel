@@ -57,9 +57,12 @@ describe('energy-balance math (hand-computed)', () => {
   });
 
   it('the blend clamp stops one crazy week from moving targets ±30%+', () => {
-    // absurd: claims eating 800/day while GAINING — measured TDEE collapses
+    // absurd: claims eating 1400/day while GAINING 1.2 kg — measured TDEE
+    // collapses. (1400 is deliberately ABOVE half the target: spec 0012 would
+    // classify a lower value as half-recorded and lock the week instead, which
+    // is a different mechanism and is covered in partial-days.test.ts.)
     const r = weeklyReport(base({
-      dayKcal: Array.from({ length: 7 }, (_, i) => ({ day: addDays(WEEK.start, i), value: 800 })),
+      dayKcal: Array.from({ length: 7 }, (_, i) => ({ day: addDays(WEEK.start, i), value: 1400 })),
       weighIns: [
         { day: WEEK.start, kg: 79.0 },
         { day: addDays(WEEK.start, 6), kg: 80.2 },

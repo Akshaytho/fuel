@@ -244,3 +244,25 @@ describe('celebrationFor — design 6a', () => {
     expect(celebrationFor({ summary: summarizeConsumed(macros(0, 0), 3, zero), targets: zero, streak: streakAt([], D(4)) })).toBeNull();
   });
 });
+
+describe('week strip honours spec 0012 (a half-logged day is not a logged day)', () => {
+  it('marks a past day below half target as partial, not logged', () => {
+    const w = week([{ day: D(0), kcal: 1500 }, { day: D(1), kcal: 200 }], D(2));
+    expect(w.slots[0]!.state).toBe('logged');
+    expect(w.slots[1]!.state).toBe('partial');
+    expect(w.loggedDays).toBe(1);
+    expect(w.partialDays).toBe(1);
+    expect(w.summary).toBe('1 of 3 days logged this week');
+  });
+
+  it('never flags TODAY as partial — a day in progress is meant to be incomplete', () => {
+    const w = week([{ day: D(2), kcal: 200 }], D(2));   // breakfast at 9am
+    expect(w.slots[2]!.state).toBe('logged');
+    expect(w.partialDays).toBe(0);
+  });
+
+  it('leaves partial days out of the week average, exactly like the report', () => {
+    const w = week([{ day: D(0), kcal: 1600 }, { day: D(1), kcal: 100 }], D(3));
+    expect(w.avgKcal).toBe(1600);       // not 850
+  });
+});
