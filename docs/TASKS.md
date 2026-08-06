@@ -171,10 +171,9 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] E-03 Week segment carries a weigh-in affordance, repaying the tap the
       Progress merge had added.
 
-### Next, in evidence order (not started)
-- [ ] E-04 Month-7 quiet re-entry: after a long gap, resume with no verdict on
-      the first screen (information avoidance is the measured dropout
-      predictor, P<.001).
-- [ ] E-05 "3+ days this week" as the celebrated unit on Progress → Week
-      (validated success state; structurally un-shameable).
-- [ ] E-06 Hourly go-tos: rank by time-of-day proximity, not just meal slot.
+- [x] E-04 Month-7 quiet re-entry (spec 0017): 30+ days away → a comeback
+      card with NO numbers in it. No day count, no old-streak brag.
+- [x] E-05 Weekly floor (spec 0017): "3+ days a week" line appears at 3 logged
+      days on Progress → Week, absent below — never a countdown.
+- [x] E-06 Hourly go-tos (spec 0017): banded time-of-day ranking; the 7:30
+      food leads at 7:30, the 12:30 food at 12:30, same meal slot.

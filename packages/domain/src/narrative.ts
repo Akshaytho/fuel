@@ -61,9 +61,17 @@ export interface WeekGlance {
   partialDays: number;
   /** days in this week covered by an earned rest day (spec 0013) */
   restedDays: number;
+  /** E-05 (spec 0017): logged days ≥ WEEKLY_FLOOR_DAYS. Rest days do NOT
+      count — they are covered days, not logged ones. The line this drives
+      APPEARS at the floor and is simply absent below it, never a countdown. */
+  weeklyFloorHit: boolean;
   /** the plain answer to "how am I doing this week" */
   summary: string;
 }
+
+/** Obesity 2024: self-monitoring ≥3 days/week supported long-term
+    maintenance. A REAL success state, and structurally un-shameable. */
+export const WEEKLY_FLOOR_DAYS = 3;
 
 /**
  * "On target" is a BAND, not a bullseye. Under-eating by a third is not a win
@@ -145,7 +153,11 @@ export function weekAtAGlance(
     ? `No days logged yet this week`
     : `${loggedDays} of ${elapsedDays} day${elapsedDays === 1 ? '' : 's'} logged this week`;
 
-  return { slots, loggedDays, partialDays, restedDays: restedCount, onTargetDays, elapsedDays, avgKcal, summary };
+  return {
+    slots, loggedDays, partialDays, restedDays: restedCount, onTargetDays, elapsedDays, avgKcal,
+    weeklyFloorHit: loggedDays >= WEEKLY_FLOOR_DAYS,
+    summary,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +238,15 @@ export interface Comeback {
 export const COMEBACK_MIN_GAP_DAYS = 2;
 
 /**
+ * E-04 (spec 0017): at this gap and beyond, the comeback goes QUIET. The
+ * strongest measured predictor of logging decline is information avoidance
+ * (P<.001) — people stop because they don't want to see the number. A
+ * month-7 lapser must not be met with a day count, an old streak brag, or
+ * any number at all. Just a door held open.
+ */
+export const COMEBACK_QUIET_GAP_DAYS = 30;
+
+/**
  * A user with history who has been away. Returns null for brand-new users and
  * for users whose streak is merely un-extended (yesterday logged, today not) —
  * that is a normal morning, not a comeback.
@@ -243,6 +264,19 @@ export function comebackNote(
 
   const away = gap - 1;                    // full days with nothing logged
   const best = Math.max(streak.longest, 0);
+
+  // E-04: past the quiet threshold there are NO numbers — no day count (an
+  // amount of absence reads as an accusation), no best-run (a two-year-old
+  // streak brag is a museum piece). Just a door held open.
+  if (away >= COMEBACK_QUIET_GAP_DAYS) {
+    return {
+      daysAway: away,
+      bestStreak: best,
+      title: 'Good to see you',
+      body: "Start with whatever's in front of you — nothing to make up for, nothing to backfill.",
+    };
+  }
+
   const awayLabel = away === 1 ? 'a day' : `${away} days`;
   return {
     daysAway: away,

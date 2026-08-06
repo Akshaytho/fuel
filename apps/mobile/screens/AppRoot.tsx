@@ -320,7 +320,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   }, [stage, plan, tick, celebratedDay, celebrationSeen]);
 
   const EMPTY_TRENDS: TrendsVM = {
-    week: { days: [], summary: '' },
+    week: { days: [], summary: '', floorHit: false },
     streak: { current: 0, suffix: '' },
     weight: { heroKg: null, deltaKg: null, deltaGood: true, sinceLabel: '', raw: [], trend: [], xLabels: [], slopeKgPerWeek: null },
     energy: { days: [], target: 0, xLabels: [], avgEaten: null },
@@ -386,6 +386,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
         days: glanceP.slots.map((sl) => ({ day: sl.day, letter: sl.letter, state: sl.state, onTarget: sl.onTarget })),
         summary: glanceP.summary,
         footnote: glanceP.avgKcal === null ? undefined : str.weekAvg(glanceP.avgKcal),
+        floorHit: glanceP.weeklyFloorHit,
       },
       streak: {
         current: streakP.current,
@@ -543,7 +544,10 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   const currentMeal = (): Meal => mealForHour(new Date().getHours());
   const goToItems = useMemo(() => {
     if (!plan) return [];
-    return goTosForMeal(store.allEntries(), currentMeal(), todayISO());
+    // E-06 (spec 0017): UTC hour on both sides, so the tz offset cancels —
+    // your 7 am foods at 7 am, your 10 pm foods at 10 pm.
+    return goTosForMeal(store.allEntries(), currentMeal(), todayISO(),
+      undefined, undefined, new Date().getUTCHours());
   }, [plan, tick, sheet]);
   const yesterdayItems = useMemo(() => {
     if (!plan) return [];

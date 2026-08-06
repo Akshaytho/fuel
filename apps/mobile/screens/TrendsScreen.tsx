@@ -13,7 +13,9 @@ import { ReportBody, type ReportVM } from './ReportScreen';
 
 export interface TrendsVM {
   /** IA 0001: the 7-dot week, moved off Today */
-  week: { days: WeekStripDay[]; summary: string; footnote?: string | undefined };
+  week: { days: WeekStripDay[]; summary: string; footnote?: string | undefined;
+          /** E-05: 3+ logged days this week — the validated success floor */
+          floorHit: boolean };
   /** the run, explained in full — the chip on Today only carries the number */
   streak: { current: number; suffix: string };
   weight: {
@@ -113,6 +115,16 @@ export function TrendsScreen({
           <FadeSlideIn key="week" style={{ gap: space.s4 }}>
             <WeekStrip testID="week-summary" theme={theme} days={vm.week.days}
               summary={vm.week.summary} footnote={vm.week.footnote} />
+            {vm.week.floorHit && (
+              <View testID="weekly-floor" style={{
+                backgroundColor: theme.successBg, borderRadius: radius.md,
+                paddingVertical: space.s3, paddingHorizontal: space.s4,
+              }}>
+                <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.onSuccessBg }}>
+                  {tr.weeklyFloor}
+                </Text>
+              </View>
+            )}
             {vm.streak.current > 0 && (
               <Card theme={theme}>
                 <Text style={{ fontSize: t.footnote.size, fontWeight: '700', letterSpacing: 0.8, color: theme.secondaryLabel }}>

@@ -170,10 +170,15 @@ describe('comebackNote — the app must not forget you', () => {
   });
 
   it('handles a two-year absence without inventing a streak to brag about', () => {
+    // E-04 (spec 0017) strengthened this: past 30 days the card goes QUIET —
+    // no day count, no numbers at all. The old assertion ("Nothing to make up
+    // for" with the count named) is superseded by the stronger contract,
+    // which evidence-pack.test.ts pins down digit-by-digit.
     const days = ['2024-06-01'];
     const c = comebackNote(days, '2026-06-01', computeStreak(days, '2026-06-01'))!;
     expect(c.daysAway).toBe(729);
-    expect(c.body).toContain('Nothing to make up for');
+    expect(c.title).toBe('Good to see you');
+    expect(/\d/.test(c.title + c.body)).toBe(false);
   });
 
   it('pluralises days off correctly', () => {

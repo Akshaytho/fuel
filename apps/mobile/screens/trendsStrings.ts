@@ -4,6 +4,9 @@ export const tr = {
   segWeek: 'Week',
   streakCaps: 'STREAK',
   weekWeighRow: 'Weigh-ins feed next week\u2019s targets',
+  // E-05 (spec 0017): appears at 3+ logged days, absent below — never a
+  // countdown, never "only N of 3" (harm rules).
+  weeklyFloor: '3+ days a week is the level research links to lasting results \u2014 you\u2019re there.',
   segWeight: 'Weight',
   segEnergy: 'Energy',
   segConsistency: 'Consistency',
