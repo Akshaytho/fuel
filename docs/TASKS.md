@@ -160,3 +160,21 @@ Add newly discovered work as new boxes — never do it silently.
       must show a RANGE. Blocked on Phase 2 (needs a fresh Anthropic key, B-06).
 - [ ] W-13 Apple Health / Health Connect, home-screen widgets, reminders.
       All table stakes, all need a native device build — blocked on P0-08.
+
+## Evidence-led features (docs/research/0004) — 2026-08-06
+
+- [x] E-01 Easy Day (spec 0016): one tap logs your usual day. THE unshipped
+      feature of the category — simplified logging doubled adherence (97% vs
+      49%) with identical outcomes. Entries carry source='easy'.
+- [x] E-02 FAB placement: the + docks above the bar's trailing edge (Material
+      FAB); the 62%-across artifact of the 3-tab merge is gone.
+- [x] E-03 Week segment carries a weigh-in affordance, repaying the tap the
+      Progress merge had added.
+
+### Next, in evidence order (not started)
+- [ ] E-04 Month-7 quiet re-entry: after a long gap, resume with no verdict on
+      the first screen (information avoidance is the measured dropout
+      predictor, P<.001).
+- [ ] E-05 "3+ days this week" as the celebrated unit on Progress → Week
+      (validated success state; structurally un-shameable).
+- [ ] E-06 Hourly go-tos: rank by time-of-day proximity, not just meal slot.

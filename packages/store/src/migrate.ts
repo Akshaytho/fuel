@@ -22,7 +22,7 @@ const str = (v: unknown, dflt: string): string => (typeof v === 'string' && v.le
 const num = (v: unknown, dflt: number): number => (isNum(v) ? v : dflt);
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-const SOURCES = ['scan', 'describe', 'search', 'manual'] as const;
+const SOURCES = ['scan', 'describe', 'search', 'manual', 'easy'] as const;
 
 /** Pre-B-12 entries have no meal. Infer from the logged hour, like mealForHour. */
 function mealFromLoggedAt(logged_at: unknown): LocalEntry['meal'] {

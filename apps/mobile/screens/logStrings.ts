@@ -28,4 +28,12 @@ export const logStr = {
   repeatLoggedTitle: 'Logged',
   repeatLoggedBody: (label: string, n: number, kcal: number) =>
     `${label} — ${n} items, ${kcal.toLocaleString('en-US')} kcal.`,
+  // spec 0016 — Easy Day. The evidence: simplified logging doubled adherence
+  // with identical outcomes. The copy never shames the shortcut.
+  easyTitle: (label: string, complete: boolean) => complete ? 'Your usual day' : `Your usual ${label.toLowerCase()}`,
+  easySubtitle: (label: string, kcal: number) =>
+    `${label} · ~${kcal.toLocaleString('en-US')} kcal · one tap`,
+  easyLoggedTitle: 'Logged your usual',
+  easyLoggedBody: (label: string, kcal: number) =>
+    `${label} — about ${kcal.toLocaleString('en-US')} kcal, from what you normally eat. Adjust anything by long-pressing it.`,
 } as const;

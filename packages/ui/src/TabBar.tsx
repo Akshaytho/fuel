@@ -5,13 +5,16 @@ import { Theme, space, radius, type as t } from '@fuel/tokens';
 import { pressedStyle } from './motion';
 
 /**
- * Bottom bar: Today · Progress · [big +] · You.
+ * Bottom bar: Today · Progress · You, with the + as a true floating action
+ * button docked above the bar's trailing edge.
  *
- * IA 0001 collapsed Trends and Report into one Progress destination — every
- * competitor has exactly one "how am I doing over time" surface, and Fuel had
- * two, neither complete alone. Three destinations sits inside Material's 3–5
- * guidance, and Apple's rule that tabs are for major AREAS, not actions, is
- * why the + is a floating control rather than a fourth tab.
+ * IA 0001 collapsed Trends and Report into one Progress destination. With
+ * three destinations there is no symmetric in-bar slot for a centre + — any
+ * fourth flex slot lands it at 62% across, which reads as a mistake. This is
+ * the exact shape Material designed the FAB for: the bar carries the three
+ * evenly spaced destinations, and the primary ACTION floats in the
+ * right-thumb zone, visually above the content it acts on. Apple's rule that
+ * tabs are for major areas, not actions, points the same way.
  */
 export interface TabBarProps {
   theme: Theme;
@@ -82,26 +85,27 @@ export function TabBar({ theme, activeIndex, onTab, onLog, soonIndices = [] }: T
     );
   };
   return (
-    <View style={{
-      flexDirection: 'row', alignItems: 'flex-start',
-      backgroundColor: theme.card, borderTopWidth: 1, borderTopColor: theme.separator,
-      paddingBottom: space.s4, minHeight: 74,
-    }}>
-      {item(0)}
-      {item(1)}
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <Pressable testID="tab-log" onPress={onLog} style={{
-          width: 56, height: 56, borderRadius: radius.pill, backgroundColor: theme.ctaBg,
-          alignItems: 'center', justifyContent: 'center', marginTop: -space.s4,
-          shadowColor: theme.shadow, shadowOpacity: 0.25, shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 }, elevation: 8,
-        }}>
-          <Svg width={24} height={24} viewBox="0 0 24 24">
-            <Path d="M12 5 V19 M5 12 H19" stroke={theme.onTint} strokeWidth="2.5" strokeLinecap="round" />
-          </Svg>
-        </Pressable>
+    <View>
+      <Pressable testID="tab-log" onPress={onLog} style={({ pressed }) => [{
+        position: 'absolute', right: space.s4, top: -64,
+        width: 56, height: 56, borderRadius: radius.pill, backgroundColor: theme.ctaBg,
+        alignItems: 'center', justifyContent: 'center',
+        shadowColor: theme.shadow, shadowOpacity: 0.25, shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 }, elevation: 8, zIndex: 10,
+      }, pressedStyle(pressed)]}>
+        <Svg width={24} height={24} viewBox="0 0 24 24">
+          <Path d="M12 5 V19 M5 12 H19" stroke={theme.onTint} strokeWidth="2.5" strokeLinecap="round" />
+        </Svg>
+      </Pressable>
+      <View style={{
+        flexDirection: 'row', alignItems: 'flex-start',
+        backgroundColor: theme.card, borderTopWidth: 1, borderTopColor: theme.separator,
+        paddingBottom: space.s4, minHeight: 74,
+      }}>
+        {item(0)}
+        {item(1)}
+        {item(2)}
       </View>
-      {item(2)}
     </View>
   );
 }

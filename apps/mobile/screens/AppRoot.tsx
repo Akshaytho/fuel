@@ -6,7 +6,7 @@ import {
   summarizeFiber, scaleFiber,
   computeStreak, dayNumber,
   smoothWeights, weeklySlopeKgPerWeek, dailyTotals, proteinDaysByWeek, loggedPercent, daysBetween,
-  weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey, repeatMealsFor,
+  weeklyReport, lastCompleteWeek, addDays, goTosForMeal, yesterdaysItems, foodKey, repeatMealsFor, usualDayFor,
   weekAtAGlance, dayNote, comebackNote, celebrationFor,
   type Targets, type Meal, type Profile, type Celebration,
 } from '@fuel/domain';
@@ -555,6 +555,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     if (!plan) return [];
     return repeatMealsFor(store.allEntries(), currentMeal(), todayISO());
   }, [plan, tick, sheet]);
+  /** spec 0016: the whole usual day, composed from the same engines. */
+  const usualDay = useMemo(() => {
+    if (!plan) return null;
+    return usualDayFor(store.allEntries(), todayISO());
+  }, [plan, tick, sheet]);
 
   /** One tap = log it again exactly as last time (grams AND macros come from
       that most-recent entry, so it works offline and needs no re-fetch). */
@@ -589,6 +594,28 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     setSheet('none');
     bump();
     alert(logStr.repeatLoggedTitle, logStr.repeatLoggedBody(combo.label, combo.items.length, combo.kcal));
+    await runSync();
+  };
+
+  /** spec 0016: one tap writes the established usual for every unlogged
+      slot — real foods, median portions, source 'easy' so the record keeps
+      the truth that this was an asserted-typical day. */
+  const logEasyDay = async () => {
+    const d = usualDay;
+    if (!d) return;
+    for (const meal of d.meals) {
+      for (const it of meal.items) {
+        await store.add({
+          day: todayISO(), food_id: it.food_id, food_name: it.food_name,
+          grams: it.grams, kcal: it.kcal, protein_g: it.protein_g,
+          carbs_g: it.carbs_g, fat_g: it.fat_g, fiber_g: it.fiber_g ?? null,
+          source: 'easy', meal: meal.meal, logged_at: new Date().toISOString(),
+        });
+      }
+    }
+    setSheet('none');
+    bump();
+    alert(logStr.easyLoggedTitle, logStr.easyLoggedBody(d.label, d.kcal));
     await runSync();
   };
 
@@ -953,6 +980,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
                 subtitle: `${Math.round(g.grams)} g · ${Math.round(g.kcal)} kcal`,
                 often: g.count >= 3,
               }))}
+              easyDay={usualDay === null ? null : {
+                title: logStr.easyTitle(usualDay.label, usualDay.complete),
+                subtitle: logStr.easySubtitle(usualDay.label, usualDay.kcal),
+              }}
+              onLogEasyDay={() => void logEasyDay()}
               repeats={repeatMeals.map((r) => ({
                 id: r.id, label: r.label,
                 subtitle: logStr.repeatSubtitle(r.items.length, r.kcal, r.days),

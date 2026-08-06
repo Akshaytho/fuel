@@ -3,6 +3,7 @@ export const tr = {
   title: 'Progress',
   segWeek: 'Week',
   streakCaps: 'STREAK',
+  weekWeighRow: 'Weigh-ins feed next week\u2019s targets',
   segWeight: 'Weight',
   segEnergy: 'Energy',
   segConsistency: 'Consistency',

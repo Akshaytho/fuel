@@ -129,6 +129,22 @@ export function TrendsScreen({
                 </View>
               </Card>
             )}
+            {/* IA 0001 consequence, fixed: merging Report in made weigh-in one
+                tap deeper. Weighing is the report's own fuel, so it gets an
+                affordance right here on the default segment. */}
+            <Pressable testID="week-log-weight" onPress={onLogWeight}
+              style={({ pressed }) => [{
+                backgroundColor: theme.card, borderRadius: radius.card,
+                paddingVertical: space.s3, paddingHorizontal: space.s4,
+                flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+              }, pressedStyle(pressed)]}>
+              <Text style={{ fontSize: t.subhead.size, fontWeight: '600', color: theme.label }}>
+                {tr.weekWeighRow}
+              </Text>
+              <Text style={{ fontSize: t.subhead.size, fontWeight: '700', color: theme.tint }}>
+                {tr.logWeight}
+              </Text>
+            </Pressable>
             <ReportBody theme={theme} vm={report} onConfirmDay={onConfirmDay}
               onAccept={onAcceptTargets} onAdjust={onAdjustTargets} />
           </FadeSlideIn>

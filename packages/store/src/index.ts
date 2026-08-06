@@ -11,7 +11,7 @@ export interface LocalEntry extends Macros {
   food_id: string | null;
   food_name: string;
   grams: number;
-  source: 'scan' | 'describe' | 'search' | 'manual';
+  source: 'scan' | 'describe' | 'search' | 'manual' | 'easy';
   /** which meal the user picked in the portion sheet (B-12: was dropped) */
   meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   logged_at: string;           // ISO
