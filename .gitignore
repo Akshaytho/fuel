@@ -7,3 +7,6 @@ coverage/
 .env*
 !.env.example
 tools/visual-harness/out/
+
+# generated deliverables (handbook PDF, page renders, mockups) — rebuilt on demand
+/out/
