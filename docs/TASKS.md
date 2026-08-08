@@ -183,5 +183,7 @@ Add newly discovered work as new boxes — never do it silently.
 - [x] F-01 Custom foods (spec 0018): create your own food from search — name
       + per-100 g macros, fibre optional (NULL, never fake zero), Atwater
       note instead of a block, own foods outrank the catalog in search.
-      Migration 0008 written; NOT yet applied to live DB. UI awaits the
-      on-phone run (phase-gate).
+      Migration 0008 APPLIED to the live DB and verified end-to-end there
+      (RLS both directions, kitchen-first ranking, owner delete, cleanup).
+      Migration tracker backfilled: 0004–0007 were applied but unrecorded.
+      UI awaits the on-phone run (phase-gate) — do not merge to main before it.

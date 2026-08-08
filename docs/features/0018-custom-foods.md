@@ -42,8 +42,15 @@ most of what India eats.
   macro negative, NaN, >100 blocked; fibre null vs 0 vs negative; Atwater
   note both directions, silent on rounding, suppressed while blocked.
 - parseFoodNumber: empty→null, comma decimal, garbage→NaN, plain numbers.
-- Search RLS/ranking and insert policy: server-side, verified after the
-  migration is applied (scripts/check-search.py extension — see open items).
+- Search RLS/ranking and insert policy: VERIFIED LIVE against the project
+  database (2026-08-08, migration 0008 applied via Management API). Real
+  signed-in user: own-food insert with fibre NULL preserved; own food ranked
+  first on both "dal tadka" and the broad "dal" against 600 catalog rows;
+  anon search could not see it; insert with a foreign owner_id rejected;
+  insert of a catalog (source='usda') row by a user rejected; owner delete
+  worked and the row left search. Fixture cleaned up; zero user-food rows
+  remain. Migration tracker was also backfilled — 0004–0007 existed in the
+  database but were unrecorded, which would have made a future run retry them.
 
 ## Out of scope (next tasks, in order)
 
