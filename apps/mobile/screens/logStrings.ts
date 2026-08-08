@@ -36,4 +36,17 @@ export const logStr = {
   easyLoggedTitle: 'Logged your usual',
   easyLoggedBody: (label: string, kcal: number) =>
     `${label} — about ${kcal.toLocaleString('en-US')} kcal, from what you normally eat. Adjust anything by long-pressing it.`,
+  // spec 0018 — custom foods: the user's own kitchen becomes loggable.
+  createRow: (q: string) => `Add “${q}” yourself`,
+  createRowSub: 'Type the numbers from a label or your recipe',
+  createTitle: 'Your own food',
+  createSub: 'Per 100 g — from the label, or your best numbers.',
+  namePh: 'Name — e.g. dal tadka, protein shake',
+  kcalLabel: 'kcal', proteinLabel: 'Protein g', carbsLabel: 'Carbs g', fatLabel: 'Fat g',
+  fiberLabel: 'Fibre g · optional',
+  fiberHint: 'No fibre line on the label? Leave it empty — unknown is honest, zero is a claim.',
+  energyGap: (implied: number) => `These macros add up to about ${implied} kcal. Your number stands — labels round.`,
+  createError: "Couldn't save right now — check your connection and try again. Nothing you typed was lost.",
+  saving: 'Saving…',
+  createCta: 'Save & pick portion',
 } as const;

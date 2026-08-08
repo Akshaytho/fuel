@@ -16,13 +16,13 @@ import {
   createRemote, createWaterRemote, createWeighInRemote, upsertProfile, deleteAccount,
   deleteWaterEntry, deleteLogEntry, fetchProfile, fetchLogEntries, fetchWaterEntries, fetchWeighIns,
 } from '../data/remote';
-import { createSupabaseFoodRepo, type FoodHit } from '../data/foodRepo';
+import { createSupabaseFoodRepo, type FoodHit, type NewCustomFood } from '../data/foodRepo';
 import { TodayScreen, type TodayVM } from './TodayScreen';
 import { TrendsScreen, type TrendsVM } from './TrendsScreen';
 import { type ReportVM } from './ReportScreen';
 import { rp } from './reportStrings';
 import { tr } from './trendsStrings';
-import { LogSheet, SearchScreen, PortionSheet } from './logflow';
+import { LogSheet, SearchScreen, PortionSheet, CreateFoodSheet } from './logflow';
 import { logStr } from './logStrings';
 import { WelcomeScreen, EmailAuthSheet, GoalScreen, AboutYouScreen, PlanScreen, goalToDomain, type AboutYou } from './onboarding';
 import { ProfileScreen } from './ProfileScreen';
@@ -79,7 +79,9 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     () => new WeighInStore(weighInAdapter, createWeighInRemote(supabaseUrl, supabaseAnonKey, auth)),
     [],
   );
-  const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey), []);
+  // spec 0018: the session lets search see the user's OWN foods (RLS) and
+  // lets them create new ones. Signed out, the repo falls back to the catalog.
+  const repo = useMemo(() => createSupabaseFoodRepo(supabaseUrl, supabaseAnonKey, auth), []);
 
   const [stage, setStage] = useState<Stage>('boot');
   const [plan, setPlanState] = useState<StoredPlan | null>(null);
@@ -97,7 +99,9 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
   const [reminder, setReminder] = useState(true);
 
   // log-flow state
-  const [sheet, setSheet] = useState<'none' | 'log' | 'search' | 'portion'>('none');
+  const [sheet, setSheet] = useState<'none' | 'log' | 'search' | 'portion' | 'create'>('none');
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [picked, setPicked] = useState<FoodHit | null>(null);
@@ -808,6 +812,22 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
     } finally { setDeleting(false); }
   };
 
+  // spec 0018: save a custom food, then flow straight into the portion sheet
+  // for it — creating and logging are one motion, not two chores.
+  const createFood = async (input: NewCustomFood) => {
+    setCreateBusy(true); setCreateError(false);
+    try {
+      const hit = await repo.create(input);
+      setPicked(hit);
+      setQuery('');
+      setSheet('portion');
+    } catch {
+      setCreateError(true);        // values stay in the sheet; nothing is lost
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
   if (stage === 'boot') return <BootSplash theme={theme} wordmark={onb.appName} />;
 
   if (stage === 'welcome' || stage === 'goal' || stage === 'about' || stage === 'plan') {
@@ -1011,6 +1031,7 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
                 onQuery={setQuery}
                 onCancel={() => { setSheet('log'); setQuery(''); }}
                 onAdd={(id) => { const f = results.find((x) => x.id === id); if (f) { setPicked(f); setSheet('portion'); } }}
+                onCreate={() => { setCreateError(false); setSheet('create'); }}
                 onDescribe={soon('Describe')} />
             </View>
           )}
@@ -1027,6 +1048,11 @@ export function AppRoot({ theme, kv, entryAdapter, waterAdapter, weighInAdapter,
               ]}
               initialIndex={1} initialMeal={mealForHour(new Date().getHours())}
               onEditFood={soon('Edit food')} onLog={logIt} />
+          )}
+          {sheet === 'create' && (
+            <CreateFoodSheet theme={theme} initialName={query.trim()}
+              busy={createBusy} error={createError}
+              onSave={(i) => void createFood(i)} />
           )}
         </View>
       </Modal>

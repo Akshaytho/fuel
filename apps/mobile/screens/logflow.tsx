@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { Theme, space, radius, type as t } from '@fuel/tokens';
 import {
   Sheet, SearchField, IconTile, FoodRow, SelectChip, MacroPreviewTile, CTAButton,
   ScanIcon, ChatIcon, Card, pressedStyle,
 } from '@fuel/ui';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { scalePer100g, type FoodPer100g, type Meal } from '@fuel/domain';
+import {
+  scalePer100g, checkCustomFood, atwaterKcal, parseFoodNumber,
+  type FoodPer100g, type Meal, type CustomFoodInput,
+} from '@fuel/domain';
 import { logStr as s } from './logStrings';
 
 /* ---------- shared VMs ---------- */
@@ -147,6 +150,8 @@ export interface SearchScreenProps {
   onCancel: () => void;
   onAdd: (id: string) => void;
   onDescribe: () => void;
+  /** spec 0018: open the create-food sheet with the current query as name */
+  onCreate: () => void;
 }
 
 function Highlight({ theme, name, query }: { theme: Theme; name: string; query: string }) {
@@ -185,6 +190,21 @@ export function SearchScreen(p: SearchScreenProps) {
                 onAdd={() => p.onAdd(r.id)} divider={i < p.results.length - 1} addTestID={`add-${r.id}`} />
             ))}
           </Card>
+        )}
+        {p.query.trim().length >= 2 && (
+          <Pressable testID="create-food" onPress={p.onCreate} style={{
+            flexDirection: 'row', alignItems: 'center', gap: space.s3,
+            backgroundColor: theme.card, borderRadius: radius.card, padding: space.s4,
+          }}>
+            <View style={{ width: 36, height: 36, borderRadius: radius.sm, backgroundColor: theme.softBlueBg, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 22, fontWeight: '600', color: theme.tint, marginTop: -2 }}>{'+'}</Text>
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text numberOfLines={1} style={{ fontSize: t.headline.size, fontWeight: t.headline.weight, color: theme.label }}>{s.createRow(p.query.trim())}</Text>
+              <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{s.createRowSub}</Text>
+            </View>
+            <Text style={{ fontSize: t.body.size, color: theme.secondaryLabel }}>{'›'}</Text>
+          </Pressable>
         )}
         <Pressable onPress={p.onDescribe} style={{
           flexDirection: 'row', alignItems: 'center', gap: space.s3,
@@ -260,6 +280,92 @@ export function PortionSheet(p: PortionSheetProps) {
           ))}
         </View>
         <CTAButton theme={theme} label={s.logTo(mealLabel, m.kcal)} testID="log-cta" onPress={() => p.onLog(grams, meal)} />
+      </View>
+    </Sheet>
+  );
+}
+
+/* ---------- Create food sheet (spec 0018) ---------- */
+export interface CreateFoodSheetProps {
+  theme: Theme;
+  /** the search query the person just typed — becomes the starting name */
+  initialName: string;
+  busy: boolean;
+  error?: boolean;
+  onSave: (input: CustomFoodInput) => void;
+}
+
+/**
+ * The user's own kitchen, per 100 g. Two honesty rules live in this form:
+ * fibre left empty stays UNKNOWN (never zero), and a kcal figure that
+ * disagrees with the macros gets a note, never a block — their word wins.
+ */
+export function CreateFoodSheet(p: CreateFoodSheetProps) {
+  const { theme } = p;
+  const [name, setName] = useState(p.initialName);
+  const [kcal, setKcal] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fat, setFat] = useState('');
+  const [fiber, setFiber] = useState('');
+
+  const req = (raw: string) => parseFoodNumber(raw) ?? Number.NaN;  // required: empty blocks
+  const fiberParsed = parseFoodNumber(fiber);                        // optional: empty = unknown
+  const input: CustomFoodInput = {
+    name,
+    kcal_per_100g: req(kcal),
+    protein_g_per_100g: req(protein),
+    carbs_g_per_100g: req(carbs),
+    fat_g_per_100g: req(fat),
+    fiber_g_per_100g: fiberParsed === null ? null : fiberParsed,
+  };
+  const check = useMemo(() => checkCustomFood(input), [name, kcal, protein, carbs, fat, fiber]);
+  const implied = atwaterKcal(input.protein_g_per_100g || 0, input.carbs_g_per_100g || 0, input.fat_g_per_100g || 0);
+
+  const field = (v: string, set: (x: string) => void, label: string, testID: string) => (
+    <View style={{ flex: 1, gap: 4 }}>
+      <Text style={{ fontSize: t.footnote.size, fontWeight: '600', color: theme.secondaryLabel }}>{label}</Text>
+      <TextInput
+        testID={testID} value={v} onChangeText={set} placeholder="0"
+        placeholderTextColor={theme.secondaryLabel} keyboardType="decimal-pad"
+        style={{ backgroundColor: theme.card, borderRadius: radius.md, padding: space.s3, fontSize: t.body.size, color: theme.label }}
+      />
+    </View>
+  );
+
+  return (
+    <Sheet theme={theme}>
+      <View style={{ gap: space.s3 }}>
+        <Text style={{ fontSize: t.title2.size, fontWeight: '700', color: theme.label }}>{s.createTitle}</Text>
+        <Text style={{ fontSize: t.subhead.size, color: theme.secondaryLabel }}>{s.createSub}</Text>
+        <TextInput
+          testID="cf-name" value={name} onChangeText={setName} placeholder={s.namePh}
+          placeholderTextColor={theme.secondaryLabel} autoCorrect={false}
+          style={{ backgroundColor: theme.card, borderRadius: radius.md, padding: space.s4, fontSize: t.body.size, color: theme.label }}
+        />
+        <View style={{ flexDirection: 'row', gap: space.s3 }}>
+          {field(kcal, setKcal, s.kcalLabel, 'cf-kcal')}
+          {field(protein, setProtein, s.proteinLabel, 'cf-protein')}
+        </View>
+        <View style={{ flexDirection: 'row', gap: space.s3 }}>
+          {field(carbs, setCarbs, s.carbsLabel, 'cf-carbs')}
+          {field(fat, setFat, s.fatLabel, 'cf-fat')}
+        </View>
+        <View style={{ flexDirection: 'row', gap: space.s3 }}>
+          {field(fiber, setFiber, s.fiberLabel, 'cf-fiber')}
+          <View style={{ flex: 1 }} />
+        </View>
+        <Text style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{s.fiberHint}</Text>
+        {check.energyGapKcal !== null && (
+          <Text testID="cf-energy-note" style={{ fontSize: t.footnote.size, color: theme.secondaryLabel }}>{s.energyGap(implied)}</Text>
+        )}
+        {p.error === true && (
+          <Text testID="cf-error" style={{ fontSize: t.subhead.size, color: theme.danger }}>{s.createError}</Text>
+        )}
+        <View style={{ opacity: check.ok && !p.busy ? 1 : 0.4 }}>
+          <CTAButton theme={theme} testID="cf-save" label={p.busy ? s.saving : s.createCta}
+            onPress={() => { if (check.ok && !p.busy) p.onSave({ ...input, name: name.trim() }); }} />
+        </View>
       </View>
     </Sheet>
   );

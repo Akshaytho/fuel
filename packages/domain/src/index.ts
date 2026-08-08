@@ -11,3 +11,4 @@ export * from './narrative';
 export * from './combos';
 export * from './fibre';
 export * from './easyday';
+export * from './customfood';

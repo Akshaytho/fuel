@@ -177,3 +177,11 @@ Add newly discovered work as new boxes — never do it silently.
       days on Progress → Week, absent below — never a countdown.
 - [x] E-06 Hourly go-tos (spec 0017): banded time-of-day ranking; the 7:30
       food leads at 7:30, the 12:30 food at 12:30, same meal slot.
+
+## F — Repairs from the rival attack report (Aug 2026)
+
+- [x] F-01 Custom foods (spec 0018): create your own food from search — name
+      + per-100 g macros, fibre optional (NULL, never fake zero), Atwater
+      note instead of a block, own foods outrank the catalog in search.
+      Migration 0008 written; NOT yet applied to live DB. UI awaits the
+      on-phone run (phase-gate).
